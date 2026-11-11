@@ -1,0 +1,252 @@
+{
+ "table1": {
+  "caption": "Table 1 - Real service limits (openai/gpt-oss-20b, Groq free tier, measured 2026-11-11). Source: results/real_probe/.",
+  "headers": [
+   "Limit",
+   "Value",
+   "How measured",
+   "Confidence"
+  ],
+  "rows": [
+   [
+    "Requests per minute",
+    "30 accepted, then 429 \"(RPM): Limit 30\"",
+    "2 bursts of tiny requests every 0.5 s until 429 (R2)",
+    "high (measured twice)"
+   ],
+   [
+    "Tokens per minute",
+    "8000 (header); 429 after 6904 tokens in 1.9 s",
+    "~1.7K-token requests back-to-back until 429 (R3); 429 compares the new prompt with what is left",
+    "high (measured)"
+   ],
+   [
+    "Requests per day",
+    "1000 (header); limit never reached",
+    "`x-ratelimit-limit-requests`; refill check: 98 used by header vs 100 sent over 18 min",
+    "medium (header value; reaching it was deliberately not attempted)"
+   ],
+   [
+    "Tokens per day",
+    "200000 (documentation); no header, never reached",
+    "Groq rate-limits page",
+    "low (not measured)"
+   ],
+   [
+    "Requests in flight at once",
+    ">= 8 (8/8 simultaneous succeeded)",
+    "8 requests started within 62 ms (R4); more was not tried (RPM would reject first)",
+    "medium (lower bound)"
+   ],
+   [
+    "Behaviour at a limit",
+    "HTTP 429 in 79 / 63 ms (p50 per burst), message names the limit, `retry-after` 2 s; rejected requests not counted against the day",
+    "R2/R3 429 bodies and headers",
+    "high"
+   ],
+   [
+    "Time until recovery",
+    "RPM: 4547, 4500 ms after first 429; TPM: 3672 ms; per day: not measured",
+    "poll every 3 s (or after retry-after) until a 200",
+    "medium (n = 3 events)"
+   ]
+  ]
+ },
+ "table2a": {
+  "caption": "Table 2a - Latency per scenario. First-token percentiles: requests with status ok only (n shown); first token = arrival to the first token of the verified answer, queue wait included. Total-time percentiles: every request, whatever its status. Duration: first arrival to last completion. Stand-in rows are simulated and must not be read as Groq measurements.",
+  "headers": [
+   "Scenario",
+   "Source",
+   "Requests",
+   "Duration (ms)",
+   "Offered req/min",
+   "First token p50",
+   "p95",
+   "p99",
+   "n (first token)",
+   "Total p50",
+   "p95",
+   "p99"
+  ],
+  "rows": [
+   [
+    "steady",
+    "stand-in",
+    31,
+    "562199",
+    "3.1",
+    "2592",
+    "5952",
+    "6024",
+    31,
+    "2592",
+    "5952",
+    "6024"
+   ],
+   [
+    "burst",
+    "stand-in",
+    29,
+    "186751",
+    "7.2",
+    "2525",
+    "28740",
+    "28740",
+    18,
+    "2144",
+    "21563",
+    "28740"
+   ],
+   [
+    "overload",
+    "stand-in",
+    87,
+    "319830",
+    "17.4",
+    "16391",
+    "27743",
+    "29143",
+    57,
+    "12724",
+    "26139",
+    "29143"
+   ],
+   [
+    "limit_halved",
+    "stand-in",
+    40,
+    "470918",
+    "5.0",
+    "2748",
+    "7449",
+    "8841",
+    40,
+    "2748",
+    "7449",
+    "8841"
+   ],
+   [
+    "daily_exhausted",
+    "stand-in",
+    23,
+    "279073",
+    "4.6",
+    "2849",
+    "5710",
+    "5952",
+    20,
+    "2854",
+    "5710",
+    "5952"
+   ]
+  ]
+ },
+ "table2b": {
+  "caption": "Table 2b - Outcomes per scenario. Percentages over all requests sent. Tokens per answer = all tokens the scenario spent (including failed attempts) / ok requests. Cost at Groq list price (USD 0.075 / 1M input, 0.30 / 1M output; the free tier itself costs 0). Stand-in token counts are the stand-in's estimates.",
+  "headers": [
+   "Scenario",
+   "Source",
+   "Requests",
+   "Success %",
+   "Rate-limited %",
+   "Timeout / gave up %",
+   "Error %",
+   "Retries per request",
+   "Peak queue",
+   "Degraded %",
+   "Tokens per answer",
+   "USD per 1,000 answers"
+  ],
+  "rows": [
+   [
+    "steady",
+    "stand-in",
+    31,
+    "100.0",
+    "0.0",
+    "0.0 (0 gave up)",
+    "0.0",
+    "0.00",
+    1,
+    "0.0",
+    "1478",
+    "0.149"
+   ],
+   [
+    "burst",
+    "stand-in",
+    29,
+    "62.1",
+    "37.9",
+    "0.0 (0 gave up)",
+    "0.0",
+    "0.00",
+    5,
+    "41.4",
+    "1262",
+    "0.129"
+   ],
+   [
+    "overload",
+    "stand-in",
+    87,
+    "65.5",
+    "18.4",
+    "16.1 (14 gave up)",
+    "0.0",
+    "0.00",
+    5,
+    "94.3",
+    "865",
+    "0.088"
+   ],
+   [
+    "limit_halved",
+    "stand-in",
+    40,
+    "100.0",
+    "0.0",
+    "0.0 (0 gave up)",
+    "0.0",
+    "0.00",
+    1,
+    "40.0",
+    "1231",
+    "0.125"
+   ],
+   [
+    "daily_exhausted",
+    "stand-in",
+    23,
+    "87.0",
+    "13.0",
+    "0.0 (0 gave up)",
+    "0.0",
+    "0.00",
+    1,
+    "0.0",
+    "1534",
+    "0.155"
+   ]
+  ]
+ },
+ "table3": {
+  "caption": "Table 3 - Retrieval settings (real Groq, each question asked once per setting). Grades are by hand (D3), over all questions asked; correct and cited = graded correct with at least one citation. First-token percentiles over ok requests; total over all.",
+  "headers": [
+   "Retrieval setting",
+   "Source",
+   "Questions asked",
+   "Graded",
+   "Correct and cited %",
+   "Wrong %",
+   "Correct refusal %",
+   "Wrong refusal %",
+   "Tokens per answer",
+   "First token p50",
+   "p95",
+   "Total p50",
+   "p95"
+  ],
+  "rows": []
+ }
+}

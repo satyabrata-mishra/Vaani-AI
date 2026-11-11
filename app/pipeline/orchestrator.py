@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 import uuid
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from typing import Awaitable, Callable
 
 from app.config import DEFAULT_RETRIEVAL, DEGRADED_PIECES, RETRIEVAL_SETTINGS, Settings
@@ -48,8 +49,9 @@ class Pipeline:
     def __init__(self, settings: Settings, provider: OpenAICompatProvider, *,
                  tool: RetrievalTool | None = None, limiter: ClientRateLimiter | None = None,
                  retry: RetryPolicy | None = None, writer: ResultsWriter | None = None,
-                 retrieval_setting: str = DEFAULT_RETRIEVAL):
+                 retrieval_setting: str = DEFAULT_RETRIEVAL, allow_degraded: bool = True):
         self.s = settings
+        self.allow_degraded = allow_degraded  # False when comparing retrieval settings (Table 3)
         self.provider = provider
         self.tool = tool or RetrievalTool(settings.tool_timeout_s, rerank_slots=settings.rerank_slots)
         self.limiter = limiter or ClientRateLimiter(limiter_config(settings))
@@ -63,10 +65,13 @@ class Pipeline:
     # ---------------------------------------------------------------------------------------
     async def handle(self, question: str, *, scenario: str = "adhoc", question_id: str | None = None,
                      retrieval_setting: str | None = None, deadline_s: float | None = None,
-                     on_token: TokenSink | None = None, run_id: str | None = None) -> RequestTrace:
+                     on_token: TokenSink | None = None, run_id: str | None = None,
+                     client: dict | None = None) -> RequestTrace:
         setting = retrieval_setting or self.retrieval_setting
         trace = RequestTrace(request_id=uuid.uuid4().hex[:12], scenario=scenario, source=self.provider.source,
                              retrieval_setting=setting, question_id=question_id, run_id=run_id)
+        if client:
+            trace.event("client", **client)  # e.g. the simulated person's patience in a load test
         deadline = Deadline(deadline_s or self.s.deadline_s)
         try:
             status, outcome = await self._run(question, setting, trace, deadline, on_token)
@@ -108,8 +113,8 @@ class Pipeline:
         trace.event("papers_named", papers=a.papers)
 
         # decide (before retrieval): degraded mode when the model budget is under pressure
-        degraded = (self.limiter.tpm_headroom() < self.s.degrade_tpm_headroom
-                    or self.gate.waiting >= self.s.degrade_queue_len)
+        degraded = self.allow_degraded and (self.limiter.tpm_headroom() < self.s.degrade_tpm_headroom
+                                            or self.gate.waiting >= self.s.degrade_queue_len)
         trace.degraded = degraded
         # Degrading cuts prompt tokens only. Re-ranking costs CPU, not provider budget, and its score is
         # what refuses off-topic questions, so it stays on (the tool sheds it only when its own queue is full).
@@ -248,7 +253,8 @@ class Pipeline:
                 trace.tokens_out += r.tokens_out or 0
                 trace.attempts.append({
                     **r.to_log(), "queue_wait_ms": round(permit.queue_wait_s * 1000, 1),
-                    "start_ms": round((r.t_start - trace.t0) * 1000, 1) if r.t_start else None})
+                    "start_ms": round((r.t_start - trace.t0) * 1000, 1) if r.t_start else None,
+                    "cancelled": not r.ok and r.error_kind is None})
             if err is None:
                 return r.content
             d = self.retry.decide(r.error_kind, r.limit_kind, r.rate_limit.retry_after_s, retries,
@@ -265,8 +271,20 @@ class Pipeline:
 
     @staticmethod
     def _passages_only(passages, e: DailyBudgetExhausted) -> Reply:
-        when = (f"in about {e.reset_s / 3600:.1f} h" if e.reset_s else "when the provider's daily budget resets")
-        lines = [f"Today's model budget is used up, so I can't write an answer (it should return {when}). "
-                 "These are the most relevant passages from the papers:"]
+        what = "requests" if e.kind == "RPD" else "tokens"
+        if e.reset_s:
+            at = datetime.now(timezone.utc) + timedelta(seconds=e.reset_s)
+            when = (f"after about {at:%d %b %H:%M} UTC (in ~{e.reset_s / 3600:.1f} h, as reported by the provider; "
+                    "it may refill earlier or later)")
+        else:
+            when = "later; the provider has not said when its daily quota resets"
+        lines = [
+            f"The language model's daily quota at our provider (Groq) is used up ({what} per day), so I cannot "
+            "write an answer to your question right now.",
+            "Nothing below is generated: I have not answered from memory or guessed.",
+            f"You can ask again {when}.",
+            "Meanwhile, these are the passages from the papers that best match your question "
+            "(relevant passages, not an answer):",
+        ]
         lines += [f"[{i}] {p.chunk.text[:400]}" for i, p in enumerate(passages[:3], start=1)]
         return Reply("\n".join(lines), [f"[{i}] {p.citation()}" for i, p in enumerate(passages[:3], start=1)])

@@ -59,6 +59,32 @@ Each entry: decision, alternatives, trade-off, who decided. "User" = Subhrajeet;
 - `first_token_ms` is filled only for `ok`; capacity/timeout/error messages are not counted as a first token.
 - Requests are turned away at arrival when the estimated wait cannot fit their deadline, rather than queued to fail later. Evidence (stand-in, limits halved without notice, 12 simultaneous requests): 2 TPM 429s before the client learned the new limit from headers, then 7 requests turned away at arrival with no further 429s.
 
+## D15. Raw runs are immutable; results.csv is assembled from selected runs (Assistant, Phase 8)
+- Every experiment run writes to its own `results/runs/<run_id>/` and is never edited (except `answer_grade`, copied from the hand-grading sheet by `experiments.apply_grades`).
+- `results/selected_runs.json` names one run per scenario (and per retrieval setting); `python -m experiments.runs` rebuilds `results.csv` and `results/traces.jsonl` from them and rejects any run whose columns differ from the required 12.
+- Why: re-running a scenario after a fix must not silently mix old and new rows, and superseded runs stay available as evidence (e.g. the first `overload` and `limit_halved` runs, which turned out too gentle).
+- Alternative rejected: appending every run to one CSV and filtering later — easy to double-count.
+
+## D16. Load-test assumptions (Assistant, Phase 8)
+- Patience: 20 % of people give up after 8–15 s, the rest wait for the 30 s deadline. Not measured; a stated assumption. Each person's patience is recorded in their trace (`client` event).
+- The load generator runs in the same process as the pipeline (D7), so client-side overhead is not on the network path.
+- The re-ranker and index are loaded before the clock starts.
+- Retrieval evaluation sends one question at a time and waits, outside the request clock, until our limiter has room; otherwise Table 3 latencies would measure the per-minute token budget rather than the retrieval setting. The waiting total is in `meta.json` (`pacing_wait_s`).
+- Real runs never start without `--yes`; without it the scripts print a token estimate built from the exact prompts (`experiments/budget.py`).
+
+## D15. Raw runs are immutable; results.csv is assembled from selected runs (Assistant, Phase 8)
+- Every experiment run writes to its own `results/runs/<run_id>/` and is never edited (except `answer_grade`, copied from the hand-grading sheet by `experiments.apply_grades`).
+- `results/selected_runs.json` names one run per scenario (and per retrieval setting); `python -m experiments.runs` rebuilds `results.csv` and `results/traces.jsonl` from them and rejects any run whose columns differ from the required 12.
+- Why: re-running a scenario after a fix must not silently mix old and new rows, and superseded runs stay available as evidence (e.g. the first `overload` and `limit_halved` runs, which turned out too gentle).
+- Alternative rejected: appending every run to one CSV and filtering later — easy to double-count.
+
+## D16. Load-test assumptions (Assistant, Phase 8)
+- Patience: 20 % of people give up after 8–15 s, the rest wait for the 30 s deadline. Not measured; a stated assumption. Each person's patience is recorded in their trace (`client` event).
+- The load generator runs in the same process as the pipeline (D7), so client-side overhead is not on the network path.
+- The re-ranker and index are loaded before the clock starts.
+- Retrieval evaluation sends one question at a time and waits, outside the request clock, until our limiter has room; otherwise Table 3 latencies would measure the per-minute token budget rather than the retrieval setting. The waiting total is in `meta.json` (`pacing_wait_s`).
+- Real runs never start without `--yes`; without it the scripts print a token estimate built from the exact prompts (`experiments/budget.py`).
+
 ## D9. Things deliberately not built (draft, user to confirm)
 - Dense-embedding / hybrid retrieval.
 - Semantic answer caching (only exact-question caching of already verified answers is considered).

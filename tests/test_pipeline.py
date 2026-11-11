@@ -132,10 +132,23 @@ async def test_daily_budget_exhausted_gives_passages_and_stops_calling(make_pipe
     pipe = make_pipeline("daily_exhausted", day_used_requests=1000)
     t1 = await pipe.handle("How many attention heads does the Transformer use?")
     assert (t1.status, t1.outcome) == ("rate_limited", "daily_budget_exhausted_RPD")
-    assert "most relevant passages" in t1.answer and t1.citations
+    a = t1.answer
+    assert "daily quota at our provider (Groq) is used up" in a          # what happened
+    assert "cannot write an answer" in a                                # no full AI answer
+    assert "Nothing below is generated" in a                            # nothing fabricated
+    assert "UTC (in ~" in a and "as reported by the provider" in a      # retry time, from the provider's header
+    assert "relevant passages, not an answer" in a and t1.citations
+    assert t1.first_token_ms is None
     t2 = await pipe.handle("What dropout rate does the Transformer use?")
     assert t2.status == "rate_limited" and t2.attempts == []   # we knew, so we did not ask again
     await pipe.provider.aclose()
+
+
+def test_daily_reply_when_reset_time_is_unknown():
+    from app.infra.rate_limiter import DailyBudgetExhausted
+    r = Pipeline._passages_only(PASSAGES, DailyBudgetExhausted("TPD", None))
+    assert "(tokens per day)" in r.text and "has not said when" in r.text and "UTC" not in r.text
+    assert len(r.sources) == 2
 
 
 async def test_hanging_provider_times_out_within_deadline(make_pipeline):

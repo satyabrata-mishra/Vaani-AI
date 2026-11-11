@@ -37,15 +37,20 @@ class ClientRateLimiter:
         self.day_requests = cfg.day_used_requests
         self.day_tokens = cfg.day_used_tokens
         self.day_remaining_requests_hdr: int | None = None
-        self.day_reset_s: float | None = None
+        self.day_reset_at: float | None = None   # clock() time the provider said the daily budget resets
         self.daily_blocked: str | None = None
         self.cooldown_until = 0.0
         self.observed_tpm_limit: int | None = None
 
     # --- planning --------------------------------------------------------------------------
+    @property
+    def day_reset_s(self) -> float | None:
+        """Seconds until the provider's reported daily reset, from now."""
+        return None if self.day_reset_at is None else max(0.0, self.day_reset_at - self.clock())
+
     def daily_check(self, est_tokens: int):
         if self.daily_blocked:
-            raise DailyBudgetExhausted(self.daily_blocked, self.day_reset_s)
+            raise DailyBudgetExhausted(self.daily_blocked, self.day_reset_s if self.daily_blocked == "RPD" else None)
         req_left = self.cfg.rpd - self.day_requests
         if self.day_remaining_requests_hdr is not None:
             req_left = min(req_left, self.day_remaining_requests_hdr)
@@ -93,7 +98,7 @@ class ClientRateLimiter:
         if rl.remaining_requests_day is not None:
             self.day_remaining_requests_hdr = rl.remaining_requests_day
         if rl.reset_requests_day_s is not None:
-            self.day_reset_s = rl.reset_requests_day_s
+            self.day_reset_at = self.clock() + rl.reset_requests_day_s
         if r.error_kind == RATE_LIMITED:
             if r.limit_kind in ("RPD", "TPD"):
                 self.daily_blocked = r.limit_kind

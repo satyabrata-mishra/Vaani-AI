@@ -73,6 +73,15 @@ class RateLimiter:
         self.day_requests = day_used_requests
         self.day_tokens = day_used_tokens
 
+    def change_limits(self, limits: Limits):
+        """New limits, same usage so far (a provider lowering limits without notice)."""
+        self.limits = limits
+        for bucket, cap, rate in ((self.rpm, limits.rpm_burst or limits.rpm, limits.rpm / 60.0),
+                                  (self.tpm, limits.tpm, limits.tpm / 60.0)):
+            used = bucket.capacity - bucket.available()
+            bucket.capacity, bucket.per_second = cap, rate
+            bucket.level = cap - used
+
     def admit(self, prompt_tokens: int) -> Rejection | None:
         L = self.limits
         if self.day_requests + 1 > L.rpd:

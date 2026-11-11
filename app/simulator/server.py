@@ -4,7 +4,8 @@
 
 Admin endpoints (used by experiment scripts between scenarios):
     GET  /admin/state            profile, counters, in-flight
-    POST /admin/profile          {"name": "rate_limited", "seed": 1, "scale": 1.0}
+    POST /admin/profile          {"name": "rate_limited", "seed": 1, "scale": 1.0, "keep_state": false}
+                                 keep_state=true swaps the rules mid-run but keeps usage, counters and log
     POST /admin/reset            fresh limiter + counters, same profile
     GET  /admin/log              every request the stand-in handled
 """
@@ -224,7 +225,15 @@ def create_app(profile_name: str = "normal", seed: int = 0, scale: float = 1.0,
         if name not in profiles:
             return JSONResponse(status_code=400, content={"error": f"unknown profile {name}",
                                                           "profiles": list(profiles)})
-        sim.configure(profiles[name], int(cfg.get("seed", sim.seed)), float(cfg.get("scale", sim.profile.latency.scale)))
+        if cfg.get("keep_state"):
+            # Only the rules change: usage, counters, log and in-flight work carry over.
+            sim.limiter.change_limits(profiles[name].limits)
+            sim.profile = replace(profiles[name], latency=replace(profiles[name].latency,
+                                                                  scale=sim.profile.latency.scale))
+            sim.log.append({"t": round(time.monotonic() - sim.t0, 4), "outcome": "profile_switch", "to": name})
+        else:
+            sim.configure(profiles[name], int(cfg.get("seed", sim.seed)),
+                          float(cfg.get("scale", sim.profile.latency.scale)))
         return sim.state()
 
     @app.post("/admin/reset")

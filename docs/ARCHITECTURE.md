@@ -79,7 +79,7 @@ arrive ─► admission check ─► bounded priority queue ─► concurrency s
 - **Cancellation**: if the client disconnects, the request task is cancelled, which closes the upstream stream (the stand-in confirmed it stops charging tokens) and records `timeout / client_gave_up`.
 - **Degraded mode** (TPM headroom < 25 % or ≥ 4 waiting): 2 passages instead of 4 and no regeneration. Re-ranking stays on: it costs CPU, not provider tokens, and its score is what refuses off-topic questions (the first smoke run answered "capital of France" from Moshi's demo transcripts when degraded mode also dropped re-ranking). The answer is still verified.
 - **Re-ranker queue**: the CPU re-ranker (~1.2 s/query) runs one at a time with at most 2 waiting; beyond that, the query uses BM25 order (counted in `RetrievalTool.rerank_skipped`).
-- **Daily budget exhausted**: no model calls. Reply = an explicit message that the model's daily quota is used up, the reset time if known, and the top retrieved passages with their locations, clearly labelled as "relevant passages, not an answer". No generated claims.
+- **Daily budget exhausted**: no model calls. The reply says that the provider's daily quota is used up, that no answer can be written, that nothing shown is generated, and when to retry (the provider's reset header as a UTC clock time, or "unknown" for the token limit); then the top 3 retrieved passages with their locations, labelled "relevant passages, not an answer". Status `rate_limited`. Exact text in EXPERIMENTS.md.
 
 Who is affected at each limit (to be confirmed by experiment):
 | Situation | Delayed | Dropped | Weaker answer |

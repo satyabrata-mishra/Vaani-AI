@@ -14,8 +14,11 @@ Everything we run shares these, including any manual testing in the Groq console
 | R4 | `concurrency`: 8 tiny requests at once | 8 | ~1K | Day 1 |
 
 Script: `python -m experiments.real_probe <probe>`; without `--yes` it only prints the plan and the spend recorded so far (`results/groq_spend.jsonl`, written for every real attempt).
-| R5 | Retrieval settings: 3 settings x ~20 questions, throttled to stay under TPM | ~60–70 | ~120K | Day 2 (fresh daily window) |
-| R6 | Small real steady-load row: ~15 questions at ~3/min | ~15 | ~30K | Day 2, only if budget remains |
+| R5 | Retrieval settings: 3 settings x 21 questions, paced by our limiter (`experiments.retrieval_eval`) | 63 (+~10 regenerations) | ~114K (dry-run estimate, upper bound) | needs approval |
+| R6 | Real steady baseline `steady_real`: 12 questions at 3/min (`experiments.load_test steady_real --backend real`) | 12 | ~21K (dry-run estimate) | needs approval |
+
+The R5/R6 estimates come from `experiments/budget.py`: it builds the exact prompt each question would send and counts
+it, then assumes 300 output tokens per call (observed: 60–230) and one regeneration for 20 % of calls.
 
 Total <= ~82K tokens on day 1 (worst case) and ~150K on day 2: inside 200K TPD per day, with headroom for mistakes.
 We will not deliberately exhaust the real daily quota; the daily-exhausted scenario runs on the stand-in, and any real daily 429 we happen to see is recorded as evidence.
@@ -74,6 +77,23 @@ Findings:
 
 Calibration targets for the stand-in (from the rows above): base first-token time ~ lognormal around 530 ms + ~90 ms per 1K input tokens; ~4% slow-start tail of ~3–4 s before headers; ~1,000 output tokens/s; 429 latency ~60–160 ms with `retry-after` rounded to whole seconds; RPM burst 30; TPM bucket 8,000 refilling continuously; 429s do not consume daily requests. Small samples (n = 24 latency), so the tail rate is uncertain.
 
+### R5 attempt 1 — 2026-11-11 13:31–13:40 UTC, INVALID for Table 3 (kept as raw evidence, not selected)
+
+- 63 real requests, ~67K tokens (`results/groq_spend.jsonl`), all three settings; runs
+  `20261111T133213Z_…small_k6_real`, `…T133343Z_…medium_k4_rr_real`, `…T133612Z_…large_k2_rr_real`.
+- **What went wrong:** degraded mode was active in the evaluation. The script paced each question until our limiter
+  had room for *one* request, but degraded mode switches on below 25 % TPM headroom, so 16/21, 20/21 and 20/21 requests
+  used 2 passages instead of the setting's 6/4/2. The settings were therefore not compared.
+- **Caught by:** Table 2b's "Degraded %" column (76.2 % for the first setting) while building the report.
+- **Second mistake:** stopping the run with `Stop-Process` on the shell's PID killed only the wrapper; the Python child
+  finished all three settings (~40K tokens more than if the stop had worked). Real runs must be stopped by the
+  Python process's own PID.
+- **Fix:** `Pipeline(allow_degraded=False)` for the evaluation, and the script now aborts if any request runs degraded.
+  Verified on the stand-in (all 63 requests non-degraded; `small_k6` prompts back to ~1,300 tokens).
+- Real-model behaviour seen in these runs (2-passage prompts): 0 errors, 0 429s, answers in ~0.4–3.4 s; several
+  answerable questions refused with `NOT_IN_PAPERS` (e.g. M1, H4 under `small_k6`) — expected with 2 passages.
+- Day total after this: ~118K of the documented 200K tokens (R0–R4 ~50K + this ~67K).
+
 ## Stand-in model service (Phase 4)
 
 `python -m app.simulator.server --profile normal --port 8100`. Same endpoint, SSE chunks, `usage` block, `x-ratelimit-*` headers, `retry-after` and 429 message text as Groq, so the pipeline's provider code is identical for both. Profiles: `normal` (calibrated), `high_latency`, `flaky`, `rate_limited` (per-minute limits halved), `daily_exhausted`, `heavy_concurrency`, `overload`, `unlimited`. Switchable at runtime via `POST /admin/profile`.
@@ -106,8 +126,88 @@ The check caught two calibration errors, now fixed: (1) a constant headers→fir
 3. **Answers are not real.** The stand-in quotes the first sentence of each passage and cites it; it never refuses unless it gets no passages. Answer quality is measured only on real Groq.
 4. **Daily budget refill** is not modelled (Groq's is unclear); the RPM algorithm is inferred, not documented.
 
-## Load scenarios (stand-in)
-To be designed in Phase 8: steady, burst, sustained overload, per-minute limit halved, daily budget exhausted.
+## Load scenarios (stand-in) — `python -m experiments.load_test all`
+
+The complete pipeline (retrieval with re-ranking, decide, gate, retries, verification) runs in-process against the
+calibrated stand-in at real speed (`scale` 1.0). Arrivals, question choice and patience come from one seeded RNG
+(`--seed`, default 0). Capacity at the calibrated limits is ~4–5 full answers per minute (8,000 TPM / ~1,650 tokens).
+
+| Scenario | Stand-in profile | Offered load | Why |
+|---|---|---|---|
+| `steady` | `normal` | Poisson, 4/min for 10 min | just below capacity |
+| `burst` | `normal` | 2/min for 4 min + 20 at once at t = 60 s | sudden spike |
+| `overload` | `normal` | Poisson, 12/min for 5 min | ~3x capacity, sustained |
+| `limit_halved` | `normal` → `rate_limited` at t = 240 s | Poisson, 4/min for 8 min | provider halves RPM/TPM without notice; usage carries over (`keep_state`) |
+| `daily_exhausted` | `daily_exhausted` (20 requests left today) | Poisson, 6/min for 5 min | daily budget runs out mid-run |
+
+Every request: deadline 30 s, retrieval `medium_k4_rr`. **Patience is assumed**: 20 % of people give up after 8–15 s
+(uniform), the rest wait for the system. Giving up cancels the request (status `timeout`, outcome `client_gave_up`).
+
+Per run, `results/runs/<run_id>/` holds `meta.json` (scenario, seed, settings, git commit, peak queue, retry counts,
+stand-in state), `results.csv` + `traces.jsonl` (one row/trace per request), `timeline.jsonl` (queue, in-flight and TPM
+headroom every second) and `standin_log.json` (every request the stand-in saw). `results/selected_runs.json` names the
+run used per scenario; `python -m experiments.runs` rebuilds the root `results.csv` from those runs.
+
+### Load scenario results — first look (stand-in, seed 0, 2026-11-11; `python -m experiments.inspect_run`)
+
+Official Tables 2a/2b are generated by the reporting script (Phase 9). Values below are copied from
+`inspect_run` output; first-token percentiles are over `ok` requests, total time over all requests.
+
+| Scenario | Requests | ok | rate_limited | timeout (gave up) | Degraded | First token p50 / p95 (ms) | Peak queue | 429s seen |
+|---|---|---|---|---|---|---|---|---|
+| steady | 31 | 31 | 0 | 0 | 0 | 2,592 / 5,952 | 1 | 0 |
+| burst | 29 | 18 | 11 (turned away at arrival) | 0 | 12 | 2,525 / 28,740 | 5 | 0 |
+| overload | 87 | 57 | 16 (turned away at arrival) | 14 | 82 | 16,391 / 27,743 | 5 | 0 |
+| limit_halved | 40 | 40 | 0 | 0 | 16 | 2,748 / 7,449 | 1 | 0 |
+| daily_exhausted | 23 | 20 | 3 (passages-only reply) | 0 | 0 | 2,724 / 5,573 | 1 | 0 |
+
+Observations (each checked in the traces):
+- **No request ever received a 429 from the stand-in in the selected runs.** Our limiter paces calls before sending. In
+  `limit_halved` the client read the new 4,000 TPM limit from the first response headers after the switch
+  (`learned_tpm_limit` 4000), and degraded mode served the 16 requests after it. This depends on the provider reporting
+  its limit in headers, which Groq does (`x-ratelimit-limit-tokens`, R0).
+- **Daily exhausted**: the stand-in had 20 requests left; requests 21–23 got the passages-only reply. Our client
+  stopped before asking (its count reached the provider's `x-ratelimit-remaining-requests` = 0), so the provider's RPD
+  429 was never needed.
+- **Overload** (17.4/min realised): degraded mode (2 passages, ~900 tokens per answer instead of ~1,600) roughly doubles
+  capacity, but cannot cover 4x. 16 people were told immediately that the wait would exceed their deadline; 14 of the 20
+  impatient people (8–15 s) gave up while queued. No patient person hit the 30 s deadline.
+- **Burst** (20 at once): 9 answered from the burst, 11 turned away at arrival; queue wait p95 20.9 s. The run reproduced
+  the earlier run with the same seed exactly (18 ok / 11 turned away).
+- **Re-tuned scenarios.** The first `overload` run (12/min, realised 10/min) was absorbed by degraded mode (47/50 ok,
+  0 turned away) and the first `limit_halved` run (Poisson 4/min) realised only ~2.7/min after the switch, so the load
+  barely reached the new limit (3,975 tokens/min vs 4,000). Both were re-run with heavier load; the first runs remain in
+  `results/runs/` (`…T120225Z_overload…`, `…T120730Z_limit_halved…`).
+- **Turned away late.** A request turned away for capacity has already been through retrieval (up to ~1.2 s of
+  re-ranking); checking admission before retrieval would save that CPU under overload. Not changed.
+
+## Slow request breakdown (Phase 10) — `python -m experiments.slow_request --source stand-in|real`
+
+Picks the answered request with the largest total time in the selected runs and splits it, from its own trace, into
+queue wait, analysis, retrieval, model time before/after the model's first token, failed attempts, retry backoff and
+verification (the remainder is shown as "other"). Output: `results/tables/slow_request_<source>.md`.
+
+Stand-in result: request `83c33ab04b00` (overload, U5, degraded), 29,143 ms total: **queue wait 23,483 ms (80.6 %)**,
+model 4,151 ms (a simulated slow start: headers after 3,844 ms), re-rank 1,506 ms, verification 1 ms, unexplained 2 ms.
+The person saw nothing until 29,143 ms because the answer is verified before release (D5). **Real example: pending**
+the clean real runs (R5/R6).
+
+## Daily quota exhausted — what the person sees (Phase 11)
+
+Reply (status `rate_limited`, outcome `daily_budget_exhausted_RPD`), verbatim from the selected `daily_exhausted` run:
+
+> The language model's daily quota at our provider (Groq) is used up (requests per day), so I cannot write an answer
+> to your question right now.
+> Nothing below is generated: I have not answered from memory or guessed.
+> You can ask again after about 12 Nov 14:01 UTC (in ~24.0 h, as reported by the provider; it may refill earlier or later).
+> Meanwhile, these are the passages from the papers that best match your question (relevant passages, not an answer):
+> [1] … [2] … [3] … (verbatim passage text with paper, section and page)
+
+- The retry time is the provider's own `x-ratelimit-reset-requests` header turned into a clock time; it is stored as an
+  absolute time so it does not go stale. With the daily *token* limit (no header) the reply says the reset time is
+  unknown. The caveat "may refill earlier or later" is there because we observed no meaningful refill in 18 min (R1–R4).
+- Once the limit is known, no further model calls are made (the 2nd and 3rd such replies sent nothing to the provider).
+- Tested in `tests/test_pipeline.py` (both the request and the token variant).
 
 ## Retrieval settings
 Initial values (in `app/config.py`), to be revisited once chunk sizes are measured on the parsed papers:

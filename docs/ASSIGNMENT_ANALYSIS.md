@@ -29,16 +29,16 @@ Status legend: `[ ]` pending, `[~]` in progress, `[x]` done, `[U]` needs the use
 | ID | Requirement | Backend | Status |
 |---|---|---|---|
 | E1 | Modest number of real requests: latency spread, limits, behaviour at a limit | real — R0–R4 done (107 attempts, 50K tokens); RPD idle-refill check pending | [~] |
-| E2 | Steady load | stand-in (+ small real run if budget allows) | [ ] |
-| E3 | Sudden burst | stand-in | [ ] |
-| E4 | Sustained overload | stand-in | [ ] |
-| E5 | Per-minute limit halved | stand-in | [ ] |
-| E6 | Daily budget exhausted | stand-in (we will NOT deliberately exhaust the real quota) | [ ] |
+| E2 | Steady load | stand-in run done (`experiments.load_test steady`); real baseline `steady_real` awaits approval | [~] |
+| E3 | Sudden burst | stand-in run done | [x] |
+| E4 | Sustained overload | stand-in run done (20/min, re-tuned after a too-gentle first run) | [x] |
+| E5 | Per-minute limit halved | stand-in run done (switch without notice at 240 s) | [x] |
+| E6 | Daily budget exhausted | stand-in run done (we will NOT deliberately exhaust the real quota) | [x] |
 | E7 | >= 15 self-written questions, graded | real; grading by the user by hand | [U] |
 | E8 | >= 3 retrieval settings (piece size, pieces fetched, re-rank) | real | [U] |
-| E9 | Tokens used per answer | all runs | [ ] |
+| E9 | Tokens used per answer | tokens_in/out per request in every run; real numbers need R5/R6 | [~] |
 | E10 | "A number we could not have guessed without running it" | pick from results | [ ] |
-| E11 | One genuinely slow request split into waiting / working / retrying, before vs after first token | trace file | [ ] |
+| E11 | One genuinely slow request split into waiting / working / retrying, before vs after first token | trace file (`experiments/slow_request.py`; stand-in example done, real example after R5/R6) | [~] |
 
 ### Report (R) — max 2 pages, headings in this order
 | # | Heading | Needs | Status |

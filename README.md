@@ -39,6 +39,23 @@ Every request appends one row to `results.csv` and one trace to `results/traces.
 `python -m experiments.pipeline_smoke` runs all questions in `data/questions.json` through the pipeline against an
 in-process stand-in (no quota, nothing written to `results.csv`).
 
+## Experiments
+
+```powershell
+python -m experiments.load_test all                        # five stand-in load scenarios (~32 min, no quota)
+python -m experiments.load_test burst --seed 1             # one scenario, another seed
+python -m experiments.retrieval_eval                       # dry run: real-Groq token budget for Table 3
+python -m experiments.retrieval_eval --yes                 # real Groq: 21 questions x 3 settings (spends quota)
+python -m experiments.load_test steady_real --backend real # dry run; add --yes for the real baseline
+python -m experiments.apply_grades                         # copy hand grades from results/grading/*.csv
+python -m experiments.runs                                 # rebuild results.csv from results/selected_runs.json
+python -m app.evaluation.report                            # Tables 1, 2a, 2b, 3 -> results/tables/
+python -m app.evaluation.report --check                    # verify tables + results.csv regenerate exactly
+```
+
+Each run keeps its raw data in `results/runs/<run_id>/`; the root `results.csv` is rebuilt from the runs named in
+`results/selected_runs.json`, so it can always be regenerated. Real runs never start without `--yes`.
+
 ## Tests
 
 ```powershell
