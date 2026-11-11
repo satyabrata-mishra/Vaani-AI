@@ -185,11 +185,21 @@ def create_app(profile_name: str = "normal", seed: int = 0, scale: float = 1.0,
                             d.update(extra)
                         return f"data: {json.dumps(d)}\n\n"
 
+                    # Sleep until an absolute schedule rather than per chunk: Windows rounds every sleep up to
+                    # its ~15 ms timer tick, which made ~1 ms per-chunk sleeps stream at ~300 instead of ~1,090 tokens/s.
+                    due = time.monotonic()
+
+                    async def until(seconds):
+                        nonlocal due
+                        due += seconds
+                        if (wait := due - time.monotonic()) > 0:
+                            await asyncio.sleep(wait)
+
                     yield ev({"role": "assistant"})
-                    await asyncio.sleep(lat.header_to_token_s(prompt_tokens, in_flight))
+                    await until(lat.header_to_token_s(prompt_tokens, in_flight))
                     yield ev({"reasoning": "(stand-in reasoning) "})
                     emitted += reasoning
-                    await asyncio.sleep(reasoning * lat.per_token_s(in_flight))
+                    await until(reasoning * lat.per_token_s(in_flight))
                     chunks = _chunk(content) if content else []
                     for i, piece in enumerate(chunks):
                         if midstream_fail and i == len(chunks) // 2:
@@ -199,7 +209,7 @@ def create_app(profile_name: str = "normal", seed: int = 0, scale: float = 1.0,
                         yield ev({"content": piece})
                         t = approx_tokens(piece)
                         emitted += t
-                        await asyncio.sleep(t * lat.per_token_s(in_flight))
+                        await until(t * lat.per_token_s(in_flight))
                     yield ev({}, finish, {"x_groq": {"id": req_id, "usage": usage(emitted)}})
                     yield "data: [DONE]\n\n"
                 except asyncio.CancelledError:

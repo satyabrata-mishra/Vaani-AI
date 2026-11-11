@@ -24,13 +24,14 @@ import httpx
 
 from app.config import DATA_DIR, load_settings
 from app.infra.metrics import ResultsWriter
+from app.infra.retry import RetryPolicy
 from app.pipeline.orchestrator import Pipeline
 from app.pipeline.retrieval import get_reranker, retrieve_sync
 from app.providers.openai_compat import OpenAICompatProvider
 from app.simulator.runner import StandInThread
 from experiments.budget import estimate
 from experiments.runs import assemble, git_info, new_run_dir, select_run
-from experiments.scenarios import REAL_SCENARIOS, SCENARIOS, Scenario
+from experiments.scenarios import REAL_SCENARIOS, RETRY_SCENARIOS, SCENARIOS, Scenario
 
 
 def load_questions() -> list[dict]:
@@ -96,8 +97,9 @@ async def run_scenario(sc: Scenario, backend: str = "standin", seed: int = 0, sc
         st = StandInThread(sc.profile, seed=seed, scale=scale).start()
         settings = load_settings(standin_base_url=st.api_base)
         provider = OpenAICompatProvider.standin(settings)
+    retry = {"policy": None, "none": RetryPolicy(max_retries=0), "naive": RetryPolicy(naive=True)}[sc.retry]
     pipe = Pipeline(settings, provider, writer=ResultsWriter(d / "results.csv", d / "traces.jsonl"),
-                    retrieval_setting=sc.retrieval_setting)
+                    retrieval_setting=sc.retrieval_setting, retry=retry)
 
     # Load the re-ranker and index before the clock starts, so request 1 does not pay a one-off cost.
     get_reranker()
@@ -156,7 +158,8 @@ async def run_scenario(sc: Scenario, backend: str = "standin", seed: int = 0, sc
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("scenario", help=f"one of {list(SCENARIOS) + list(REAL_SCENARIOS)} or 'all'")
+    ap.add_argument("scenario", help=f"one of {list(SCENARIOS) + list(RETRY_SCENARIOS) + list(REAL_SCENARIOS)}, "
+                                     "'all' (the five load shapes) or 'retries' (the three retry variants)")
     ap.add_argument("--backend", choices=["standin", "real"], default="standin")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--scale", type=float, default=1.0, help="stand-in latency scale (1.0 = calibrated)")
@@ -166,9 +169,11 @@ def main():
 
     if a.scenario == "all":
         names = list(SCENARIOS)
+    elif a.scenario == "retries":
+        names = list(RETRY_SCENARIOS)
     else:
         names = [a.scenario]
-    catalog = {**SCENARIOS, **REAL_SCENARIOS}
+    catalog = {**SCENARIOS, **RETRY_SCENARIOS, **REAL_SCENARIOS}
     for n in names:
         if n not in catalog:
             raise SystemExit(f"unknown scenario {n}")

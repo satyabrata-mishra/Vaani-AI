@@ -7,3 +7,9 @@
 | overload | stand-in | 87 | 65.5 | 18.4 | 16.1 (14 gave up) | 0.0 | 0.00 | 5 | 94.3 | 865 | 0.088 |
 | limit_halved | stand-in | 40 | 100.0 | 0.0 | 0.0 (0 gave up) | 0.0 | 0.00 | 1 | 40.0 | 1231 | 0.125 |
 | daily_exhausted | stand-in | 23 | 87.0 | 13.0 | 0.0 (0 gave up) | 0.0 | 0.00 | 1 | 0.0 | 1534 | 0.155 |
+| errors_policy | stand-in | 19 | 100.0 | 0.0 | 0.0 (0 gave up) | 0.0 | 0.05 | 1 | 0.0 | 1423 | 0.144 |
+| errors_none | stand-in | 19 | 94.7 | 0.0 | 0.0 (0 gave up) | 5.3 | 0.00 | 1 | 0.0 | 1420 | 0.144 |
+| errors_naive | stand-in | 19 | 100.0 | 0.0 | 0.0 (0 gave up) | 0.0 | 0.05 | 1 | 0.0 | 1423 | 0.144 |
+| errors_busy_policy | stand-in | 50 | 86.0 | 4.0 | 10.0 (5 gave up) | 0.0 | 0.12 | 4 | 80.0 | 948 | 0.096 |
+| errors_busy_none | stand-in | 50 | 78.0 | 0.0 | 10.0 (5 gave up) | 12.0 | 0.00 | 4 | 74.0 | 1016 | 0.103 |
+| errors_busy_naive | stand-in | 50 | 86.0 | 4.0 | 10.0 (5 gave up) | 0.0 | 0.12 | 4 | 80.0 | 948 | 0.096 |

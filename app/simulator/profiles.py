@@ -65,6 +65,8 @@ def build_profiles(cal: dict | None = None) -> dict[str, Profile]:
         replace(n, name="overload", capacity=6, latency=replace(n.latency, load_alpha=0.1, tail_rate=0.1),
                 faults=Faults(error_rate=0.02),
                 description="Provider-side saturation: small capacity, strong slowdown, 10% slow starts, 2% 500s."),
+        replace(n, name="erroring", faults=Faults(error_rate=0.2),
+                description="20% of calls fail with a 500 after the first-byte delay (assumed; for the retry runs)."),
         replace(n, name="unlimited", limits=Limits(rpm=10**9, tpm=10**12, rpd=10**9, tpd=10**12),
                 description="Calibrated latency with no limits (isolates our own queueing)."),
     ]}

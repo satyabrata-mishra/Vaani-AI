@@ -4,13 +4,14 @@ import csv
 
 import pytest
 
-from app.config import load_settings
+from app.config import DEGRADED_PIECES, RETRIEVAL_SETTINGS, load_settings
+from app.infra.admission import ModelGate
 from app.infra.metrics import ResultsWriter
 from app.ingest.chunker import Chunk
 from app.pipeline.analyzer import analyze
 from app.pipeline.orchestrator import Pipeline
 from app.pipeline.prompts import build_messages
-from app.pipeline.retrieval import Passage, RetrievalTool, retrieve_sync
+from app.pipeline.retrieval import Passage, RetrievalResult, RetrievalTool, retrieve_sync
 from app.pipeline.verifier import render, split_sentences, verify
 from app.providers.openai_compat import OpenAICompatProvider
 from app.simulator.behavior import Faults
@@ -190,4 +191,78 @@ async def test_burst_under_halved_limit_is_bounded_and_learned(make_pipeline, tm
     n429 = sum(a["status_code"] == 429 for t in traces for a in t.attempts)
     assert n429 <= pipe.s.max_in_flight                             # at most one round before learning
     assert any(t.outcome == "wait_exceeds_deadline" for t in traces)  # then turned away at arrival
+    await pipe.provider.aclose()
+
+
+# --- decide step: widening, refusing, degraded mode, queue capacity ----------------------------
+
+class FixedTool:
+    """Returns one Transformer passage with a chosen re-rank score, so the decide branches are deterministic."""
+
+    def __init__(self, first: float, wider: float | None = None):
+        self.first, self.wider, self.calls = first, wider, []
+
+    async def __call__(self, query, setting_name, pieces=None, rerank=None, timeout_s=None, fetch=None,
+                       papers=None):
+        self.calls.append({"pieces": pieces, "rerank": rerank, "fetch": fetch})
+        p = _p("attention", PASSAGES[0].chunk.text)
+        p.rerank = self.wider if fetch and self.wider is not None else self.first
+        return RetrievalResult(setting_name, query, [p], 1.0, 1.0, [], True, 1.0)
+
+
+async def test_weak_evidence_widens_the_search_once(make_pipeline):
+    tool = FixedTool(first=-3.0, wider=2.0)
+    pipe = make_pipeline(tool=tool)
+    t = await pipe.handle("How many attention heads does the Transformer use?")
+    assert t.status == "ok"
+    assert [c["fetch"] for c in tool.calls] == [None, RETRIEVAL_SETTINGS["small_k6"].fetch * 2]
+    widened = [e for e in t.events if e["name"] == "widened"]
+    assert [(e["before"], e["after"]) for e in widened] == [(-3.0, 2.0)]
+    assert "retrieve_wider" in [s["name"] for s in t.spans]
+    await pipe.provider.aclose()
+
+
+async def test_very_weak_evidence_is_refused_before_the_model(make_pipeline):
+    tool = FixedTool(first=-9.0)
+    pipe = make_pipeline(tool=tool)
+    t = await pipe.handle("How many attention heads does the Transformer use?")
+    assert (t.status, t.outcome) == ("ok", "refused_no_evidence")
+    assert len(tool.calls) == 1 and t.attempts == []
+    await pipe.provider.aclose()
+
+
+async def test_degraded_mode_cuts_pieces_but_keeps_reranking(make_pipeline):
+    pipe = make_pipeline(setting="medium_k4_rr")
+    pipe.limiter.tpm_headroom = lambda: 0.1          # below degrade_tpm_headroom
+    t = await pipe.handle("How many attention heads does the Transformer use?")
+    assert t.degraded and t.status == "ok"
+    retrieve = [s for s in t.spans if s["name"] == "retrieve"][0]
+    assert retrieve["reranked"] and retrieve["n"] == DEGRADED_PIECES
+    assert "retrieve_wider" not in [s["name"] for s in t.spans]
+    # Re-ranking still refuses off-topic questions while degraded (D13).
+    off = await pipe.handle("What is the capital of France?")
+    assert off.degraded and off.outcome == "refused_no_evidence" and off.attempts == []
+    await pipe.provider.aclose()
+
+
+async def test_degraded_mode_can_be_switched_off(make_pipeline):
+    pipe = make_pipeline()
+    pipe.allow_degraded = False                      # as in the retrieval-settings comparison
+    pipe.limiter.tpm_headroom = lambda: 0.0
+    t = await pipe.handle("How many attention heads does the Transformer use?")
+    assert not t.degraded
+    await pipe.provider.aclose()
+
+
+async def test_full_queue_turns_requests_away_and_records_them(make_pipeline, tmp_path):
+    pipe = make_pipeline(scale=1.0)
+    pipe.gate = ModelGate(pipe.limiter, max_in_flight=1, queue_max=1, expected_service_s=pipe.s.expected_service_s)
+    traces = await asyncio.gather(*(pipe.handle("How many attention heads does the Transformer use?",
+                                                deadline_s=60) for _ in range(5)))
+    full = [t for t in traces if t.outcome == "queue_full"]
+    assert full and all(t.status == "rate_limited" and t.first_token_ms is None and t.attempts == []
+                        for t in full)
+    assert len(_rows(tmp_path)) == 5
+    assert pipe.gate.peak_in_flight <= 1 and pipe.gate.peak_waiting <= 1
+    assert pipe.gate.in_flight == 0 and pipe.gate.waiting == 0
     await pipe.provider.aclose()

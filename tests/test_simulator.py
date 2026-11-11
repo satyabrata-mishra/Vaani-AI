@@ -123,6 +123,19 @@ async def test_stream_ok_with_usage_headers_and_timings(standin):
     await p.aclose()
 
 
+async def test_streams_at_the_calibrated_rate_in_real_time(standin):
+    # Real Groq: 15-156 ms from first token to end for ~90 output tokens (R1). The stand-in once streamed
+    # ~4x slower because every short per-chunk sleep was rounded up to the OS timer tick.
+    p, _, _ = standin(scale=1.0, answer_tokens=180)
+    call = p.stream_chat(PROMPT * 1, max_tokens=400, timeout_s=10)
+    await consume(call)
+    r = call.result
+    expected_s = r.tokens_out / calibrated_normal().latency.tokens_per_s
+    assert r.tokens_out >= 30
+    assert r.t_end - r.t_first_token < expected_s + 0.06
+    await p.aclose()
+
+
 async def test_rate_limited_profile_returns_groq_style_429(standin):
     p, app, _ = standin(limits=Limits(rpm=2, tpm=10**6, rpd=1000, tpd=10**9))
     for _ in range(2):

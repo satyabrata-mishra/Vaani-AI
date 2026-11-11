@@ -14,11 +14,17 @@
 
 | Scenario | Source | Requests | Duration (ms) | Offered req/min | First token p50 | p95 | p99 | n (first token) | Total p50 | p95 | p99 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| steady | stand-in | 31 | 562199 | 3.1 | 2592 | 5952 | 6024 | 31 | 2592 | 5952 | 6024 |
-| burst | stand-in | 29 | 186751 | 7.2 | 2525 | 28740 | 28740 | 18 | 2144 | 21563 | 28740 |
-| overload | stand-in | 87 | 319830 | 17.4 | 16391 | 27743 | 29143 | 57 | 12724 | 26139 | 29143 |
-| limit_halved | stand-in | 40 | 470918 | 5.0 | 2748 | 7449 | 8841 | 40 | 2748 | 7449 | 8841 |
-| daily_exhausted | stand-in | 23 | 279073 | 4.6 | 2849 | 5710 | 5952 | 20 | 2854 | 5710 | 5952 |
+| steady | stand-in | 31 | 561800 | 3.1 | 2307 | 5745 | 5908 | 31 | 2307 | 5745 | 5908 |
+| burst | stand-in | 29 | 186594 | 7.2 | 2224 | 28535 | 28535 | 18 | 1558 | 21560 | 28535 |
+| overload | stand-in | 87 | 319633 | 17.4 | 16077 | 27414 | 28959 | 57 | 12711 | 25877 | 28959 |
+| limit_halved | stand-in | 40 | 470619 | 5.0 | 2315 | 6726 | 8445 | 40 | 2315 | 6726 | 8445 |
+| daily_exhausted | stand-in | 23 | 278900 | 4.6 | 2266 | 5036 | 5163 | 20 | 2321 | 5036 | 5163 |
+| errors_policy | stand-in | 19 | 319038 | 3.2 | 2165 | 4829 | 4829 | 19 | 2165 | 4829 | 4829 |
+| errors_none | stand-in | 19 | 318871 | 3.2 | 2191 | 5075 | 5075 | 18 | 2191 | 5075 | 5075 |
+| errors_naive | stand-in | 19 | 319089 | 3.2 | 2194 | 4947 | 4947 | 19 | 2194 | 4947 | 4947 |
+| errors_busy_policy | stand-in | 50 | 291964 | 10.0 | 5695 | 17600 | 18497 | 43 | 7614 | 17600 | 18497 |
+| errors_busy_none | stand-in | 50 | 288439 | 10.0 | 2262 | 14333 | 14416 | 39 | 2336 | 14333 | 14817 |
+| errors_busy_naive | stand-in | 50 | 291818 | 10.0 | 5500 | 17447 | 18378 | 43 | 7457 | 17447 | 18378 |
 
 **Table 2b - Outcomes per scenario. Percentages over all requests sent. Tokens per answer = all tokens the scenario spent (including failed attempts) / ok requests. Cost at Groq list price (USD 0.075 / 1M input, 0.30 / 1M output; the free tier itself costs 0). Stand-in token counts are the stand-in's estimates.**
 
@@ -29,6 +35,12 @@
 | overload | stand-in | 87 | 65.5 | 18.4 | 16.1 (14 gave up) | 0.0 | 0.00 | 5 | 94.3 | 865 | 0.088 |
 | limit_halved | stand-in | 40 | 100.0 | 0.0 | 0.0 (0 gave up) | 0.0 | 0.00 | 1 | 40.0 | 1231 | 0.125 |
 | daily_exhausted | stand-in | 23 | 87.0 | 13.0 | 0.0 (0 gave up) | 0.0 | 0.00 | 1 | 0.0 | 1534 | 0.155 |
+| errors_policy | stand-in | 19 | 100.0 | 0.0 | 0.0 (0 gave up) | 0.0 | 0.05 | 1 | 0.0 | 1423 | 0.144 |
+| errors_none | stand-in | 19 | 94.7 | 0.0 | 0.0 (0 gave up) | 5.3 | 0.00 | 1 | 0.0 | 1420 | 0.144 |
+| errors_naive | stand-in | 19 | 100.0 | 0.0 | 0.0 (0 gave up) | 0.0 | 0.05 | 1 | 0.0 | 1423 | 0.144 |
+| errors_busy_policy | stand-in | 50 | 86.0 | 4.0 | 10.0 (5 gave up) | 0.0 | 0.12 | 4 | 80.0 | 948 | 0.096 |
+| errors_busy_none | stand-in | 50 | 78.0 | 0.0 | 10.0 (5 gave up) | 12.0 | 0.00 | 4 | 74.0 | 1016 | 0.103 |
+| errors_busy_naive | stand-in | 50 | 86.0 | 4.0 | 10.0 (5 gave up) | 0.0 | 0.12 | 4 | 80.0 | 948 | 0.096 |
 
 **Table 3 - Retrieval settings (real Groq, each question asked once per setting). Grades are by hand (D3), over all questions asked; correct and cited = graded correct with at least one citation. First-token percentiles over ok requests; total over all.**
 

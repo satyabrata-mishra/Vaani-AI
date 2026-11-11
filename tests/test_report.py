@@ -4,7 +4,7 @@ import json
 import pytest
 
 import app.evaluation.report as report
-from app.config import RESULTS_COLUMNS
+from app.config import RESULTS_COLUMNS, RESULTS_CSV, ROOT
 
 
 def _row(i, scenario, status, ft, total, grade="", setting="medium_k4_rr", source="stand-in", tin=1000, tout=100):
@@ -88,3 +88,16 @@ def test_slow_request_breakdown_adds_up_and_finds_retrying():
 def test_formatting_rules():
     assert report.pct(1, 3) == "33.3" and report.pct(0, 0) == "not measured"
     assert report.ms(1234.6) == "1235" and report.ms(None) == "not measured"
+
+
+def test_committed_results_are_reproducible_from_raw_runs():
+    """results.csv and every table must regenerate byte-for-byte from the selected raw runs."""
+    import subprocess
+    import sys
+    r = subprocess.run([sys.executable, "-m", "app.evaluation.report", "--check"], capture_output=True,
+                       text=True, cwd=ROOT, timeout=300)
+    assert r.returncode == 0, r.stdout + r.stderr
+    with RESULTS_CSV.open(encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        assert reader.fieldnames == RESULTS_COLUMNS
+        assert {row["source"] for row in reader} <= {"real", "stand-in"}

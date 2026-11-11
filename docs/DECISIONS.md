@@ -1,6 +1,6 @@
 # Decisions log
 
-Each entry: decision, alternatives, trade-off, who decided. "User" = Subhrajeet; "Assistant" = proposed by the AI assistant and not yet challenged.
+Each entry: decision, alternatives, trade-off, who decided. "User" = Satyabrata Mishra; "Assistant" = proposed by the AI assistant and not yet challenged.
 
 ## D1. Primary model: `openai/gpt-oss-20b` (User chose "small/fast"; Assistant mapped it to this model)
 - The user chose the small, fast model. `llama-3.1-8b-instant` is now Enterprise-only on Groq (models page, 11 Nov 2026), so the smallest free-tier chat model is `openai/gpt-oss-20b`.
@@ -41,6 +41,14 @@ Each entry: decision, alternatives, trade-off, who decided. "User" = Subhrajeet;
 - At ~2K tokens per answer and 8K TPM, every extra model call reduces capacity by roughly half.
 - Trade-off: rule-based verification cannot judge paraphrased meaning; it can catch hallucinated numbers, wrong citations and missing support. Known gap, stated in the report.
 
+## D9. Things deliberately not built (user to confirm for report heading 8)
+- Dense-embedding / hybrid retrieval: BM25 + cross-encoder already finds the expected section for 16/16 answerable questions with `medium_k4_rr` (retrieval-only check), and an embedding model would add another CPU cost next to the re-ranker.
+- Answer caching (semantic or exact): the evaluation asks each question once per setting, so a cache would hide the cost being measured.
+- Multi-model routing / provider failover: a second model or provider would mean a second set of limits to measure; the brief asks to work inside one free tier.
+
+## D10. Percentiles
+- Nearest-rank (returns an observed value, never an interpolated one). Failed requests are never silently dropped: first-token percentiles are over `ok` requests (the only ones with a first token, D14) and total-time percentiles over every request; each table states its population and `n`.
+
 ## D11. Stand-in answers are extractive, not generated (Assistant)
 - The stand-in quotes the first sentence of each passage it receives and cites it as `[Pn]`; with no passages it answers `NOT_IN_PAPERS`.
 - Why: load tests need output that passes through the same verification step as real answers, with realistic length and timing, at zero cost. Faking "intelligent" answers would add nothing measurable.
@@ -48,6 +56,7 @@ Each entry: decision, alternatives, trade-off, who decided. "User" = Subhrajeet;
 
 ## D12. Stand-in calibration is checked, not just fitted (Assistant)
 - `experiments/standin_check.py` replays the real probe shapes against the stand-in. It caught two calibration errors (constant header→token gap; RPM burst 30 instead of a ~22-request bucket). Both were fixed from the raw logs.
+- It compared first-token times only, so it missed a third error: the stand-in streamed ~4x slower than calibrated after the first token (Windows timer rounding of short sleeps). Found from the load-run traces in Phase 13, fixed, tested, and all stand-in load runs re-run (EXPERIMENTS.md).
 
 ## D13. Degraded mode cuts prompt tokens, never re-ranking or verification (Assistant, Phase 5)
 - Degraded (TPM headroom < 25 % or ≥ 4 waiting): 2 passages instead of 4, no regeneration.
@@ -71,24 +80,7 @@ Each entry: decision, alternatives, trade-off, who decided. "User" = Subhrajeet;
 - The re-ranker and index are loaded before the clock starts.
 - Retrieval evaluation sends one question at a time and waits, outside the request clock, until our limiter has room; otherwise Table 3 latencies would measure the per-minute token budget rather than the retrieval setting. The waiting total is in `meta.json` (`pacing_wait_s`).
 - Real runs never start without `--yes`; without it the scripts print a token estimate built from the exact prompts (`experiments/budget.py`).
+- Retrieval evaluation runs with degraded mode off (`Pipeline(allow_degraded=False)`) and aborts if any request runs degraded; otherwise the three settings are not compared (the first real attempt was invalid for this reason, EXPERIMENTS.md "R5 attempt 1").
 
-## D15. Raw runs are immutable; results.csv is assembled from selected runs (Assistant, Phase 8)
-- Every experiment run writes to its own `results/runs/<run_id>/` and is never edited (except `answer_grade`, copied from the hand-grading sheet by `experiments.apply_grades`).
-- `results/selected_runs.json` names one run per scenario (and per retrieval setting); `python -m experiments.runs` rebuilds `results.csv` and `results/traces.jsonl` from them and rejects any run whose columns differ from the required 12.
-- Why: re-running a scenario after a fix must not silently mix old and new rows, and superseded runs stay available as evidence (e.g. the first `overload` and `limit_halved` runs, which turned out too gentle).
-- Alternative rejected: appending every run to one CSV and filtering later — easy to double-count.
-
-## D16. Load-test assumptions (Assistant, Phase 8)
-- Patience: 20 % of people give up after 8–15 s, the rest wait for the 30 s deadline. Not measured; a stated assumption. Each person's patience is recorded in their trace (`client` event).
-- The load generator runs in the same process as the pipeline (D7), so client-side overhead is not on the network path.
-- The re-ranker and index are loaded before the clock starts.
-- Retrieval evaluation sends one question at a time and waits, outside the request clock, until our limiter has room; otherwise Table 3 latencies would measure the per-minute token budget rather than the retrieval setting. The waiting total is in `meta.json` (`pacing_wait_s`).
-- Real runs never start without `--yes`; without it the scripts print a token estimate built from the exact prompts (`experiments/budget.py`).
-
-## D9. Things deliberately not built (draft, user to confirm)
-- Dense-embedding / hybrid retrieval.
-- Semantic answer caching (only exact-question caching of already verified answers is considered).
-- Multi-model routing / provider failover.
-
-## D10. Percentiles
-- Nearest-rank method on all requests in the population named in each table caption. Failed requests are never silently dropped. Latency percentiles are computed over requests that produced at least one token for first-token latency, and over all completed requests for total time; the population size `n` is printed next to each percentile.
+## D17. Real runs only on the user's own Groq account (Assistant raised the brief's rule; User decided, 11 Nov)
+- After the first real retrieval evaluation used most of the day's tokens, a key from a second Groq account was offered. The brief's ground rules forbid extra accounts ("Do not use extra accounts or any other trick to get around its limits"), and limits are per organization, so the runs wait for the own account's quota instead.

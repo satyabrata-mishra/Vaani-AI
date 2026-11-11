@@ -36,6 +36,7 @@ class Scenario:
     deadline_s: float = 30.0
     retrieval_setting: str = "medium_k4_rr"
     patience: Patience = field(default_factory=Patience)
+    retry: str = "policy"                   # policy | none | naive (RetryPolicy(naive=True))
 
     def arrivals(self, rng: random.Random) -> list[float]:
         times: list[float] = []
@@ -67,6 +68,19 @@ SCENARIOS: dict[str, Scenario] = {s.name: s for s in [
              rate_per_min=5, duration_s=480, arrival="constant", switch_to="rate_limited", switch_at_s=240),
     Scenario("daily_exhausted", "6/min for 5 min with only 20 requests left in the provider's daily budget.",
              profile="daily_exhausted", rate_per_min=6, duration_s=300),
+]}
+
+# Does retrying help or hurt? Same seeded arrivals against a stand-in that fails 20 % of calls (an
+# assumed rate: no 5xx was seen on Groq), once with spare capacity and once busy. A retried call
+# competes for the same per-minute token budget as new questions. The first, 4/min set realised
+# 3.2/min with a peak queue of 1, so retries had nothing to compete with.
+RETRY_SCENARIOS: dict[str, Scenario] = {s.name: s for s in [
+    *[Scenario(f"errors_{mode}", f"4/min for 6 min, 20 % of model calls fail; retries: {mode}.",
+               profile="erroring", rate_per_min=4, duration_s=360, retry=mode)
+      for mode in ("policy", "none", "naive")],
+    *[Scenario(f"errors_busy_{mode}", f"12/min for 5 min, 20 % of model calls fail; retries: {mode}.",
+               profile="erroring", rate_per_min=12, duration_s=300, retry=mode)
+      for mode in ("policy", "none", "naive")],
 ]}
 
 # Small real-Groq baseline (needs --backend real --yes; budget printed by --dry-run)

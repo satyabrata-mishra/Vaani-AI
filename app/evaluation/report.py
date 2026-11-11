@@ -30,7 +30,9 @@ PROBE_DIR = RESULTS_DIR / "real_probe"
 RUNS_DIR = RESULTS_DIR / "runs"
 SELECTED = RESULTS_DIR / "selected_runs.json"
 NM = "not measured"
-SCENARIO_ORDER = ["steady_real", "retrieval_eval", "steady", "burst", "overload", "limit_halved", "daily_exhausted"]
+SCENARIO_ORDER = ["steady_real", "retrieval_eval", "steady", "burst", "overload", "limit_halved", "daily_exhausted",
+                  "errors_policy", "errors_none", "errors_naive",
+                  "errors_busy_policy", "errors_busy_none", "errors_busy_naive"]
 
 
 # --- formatting --------------------------------------------------------------------------------

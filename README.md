@@ -7,7 +7,7 @@ behaviour under load, failures and rate limits that the free tier cannot safely 
 
 Built for the "The Relay" assignment (`The_Relay_Assignment_Brief.pdf`).
 
-**Status (11 Nov 2026):** pipeline, stand-in, load experiments, reporting and 102 tests are done. The real-Groq
+**Status (11 Nov 2026):** pipeline, stand-in, load experiments, reporting and 111 tests are done. The real-Groq
 retrieval evaluation (Table 3) and the real steady-load baseline are scheduled for 12 Nov on a fresh daily quota
 window; hand grading, Vaani feedback, the conversation history and the final report are pending (see
 [Status and pending work](#status-and-pending-work)).
@@ -179,7 +179,7 @@ python -m experiments.standin_check                  # compare stand-in vs real 
   tokens/s, RPM 30 (burst 22), TPM 8,000 checked on the prompt at admission, RPD 1,000.
 - Assumed (not measurable on the free tier): behaviour under heavy concurrency, failure rates, daily refill.
 - Profiles: `normal`, `unlimited`, `high_latency`, `flaky`, `rate_limited` (limits halved), `daily_exhausted`,
-  `heavy_concurrency`, `overload`.
+  `heavy_concurrency`, `overload`, `erroring` (20 % of calls fail with a 500; assumed rate, for the retry runs).
 - Admin: `GET /admin/state`, `POST /admin/profile {"name": "...", "keep_state": true}` (change the rules mid-run while
   keeping usage), `POST /admin/reset`, `GET /admin/log`.
 
@@ -196,6 +196,7 @@ prompts it would send (`experiments/budget.py`). Ordinary tests never use quota.
 | `python -m experiments.analyze_probes` | summarise probe logs → `results/real_probe/summary.json` | no |
 | `python -m experiments.retrieval_offline` | retrieval hit rate per setting, no model | no |
 | `python -m experiments.load_test all` | five stand-in load scenarios (~32 min) | no |
+| `python -m experiments.load_test retries` | same load with our retry policy, no retries, naive retries; spare and busy (~35 min) | no |
 | `python -m experiments.load_test <scenario> --seed N` | one scenario | no |
 | `python -m experiments.load_test steady_real --backend real [--yes]` | real steady baseline (12 questions) | ~21K tokens |
 | `python -m experiments.retrieval_eval [--yes]` | 21 questions × 3 settings on Groq + grading sheets | ~96–114K tokens |
@@ -212,6 +213,7 @@ Load scenarios (stand-in, deadline 30 s, 20 % of simulated people give up after 
 | `overload` | Poisson 20/min for 5 min |
 | `limit_halved` | constant 5/min for 8 min; provider halves RPM/TPM without notice at 4 min |
 | `daily_exhausted` | 6/min for 5 min with 20 requests left in the daily quota |
+| `errors_policy` / `errors_none` / `errors_naive` | 4/min for 6 min, 20 % of model calls fail; identical arrivals, only the retry behaviour differs |
 
 Questions: 21 self-written questions in `data/questions.json` (16 answerable incl. one cross-paper, 5 unanswerable
 traps), each with expected facts and locations.
@@ -241,14 +243,18 @@ Measured so far (from the generated tables; details in `results/tables/` and `do
   719 ms at ~310 / 1,258 / 2,548 input tokens.
 - **Stand-in load scenarios:** no request received a 429 — the client paced itself and learned the halved limit from
   headers. Burst: 18/29 answered, 11 turned away at arrival. Overload (17.4/min): 57/87 answered, 16 turned away, 14
-  gave up while queued; first token p50 16.4 s. Slowest answered request: 29.1 s, 80.6 % of it queue wait.
+  gave up while queued; first token p50 16.1 s. Slowest answered request: 29.0 s, 80.9 % of it queue wait.
+- **Retries (stand-in, calls failing at random):** with spare capacity retrying only helped; when busy it turned 6
+  errors into 4 answers and 2 refusals at arrival, and made one person wait 3.8 s longer for the same non-answer.
+- **Stand-in calibration bug found and fixed:** it streamed ~4x slower than calibrated after the first token (Windows
+  timer rounding); all stand-in load runs were re-run.
 - **Table 3 (retrieval settings on real Groq): not measured yet.** The first real attempt was invalid (degraded mode
   was active) and is excluded; see `docs/EXPERIMENTS.md`.
 
 ## Tests
 
 ```powershell
-python -m pytest        # 102 tests, ~50 s; never uses Groq quota (tests marked `real` are skipped)
+python -m pytest        # 111 tests, ~50 s; never uses Groq quota (tests marked `real` are skipped)
 ```
 
 Covered: request validation, PDF parsing and chunking, BM25 and retrieval hits, citation/number/paper verification,
@@ -292,7 +298,7 @@ the slow-request breakdown.
 
 Done: paper library, ingestion and retrieval, Groq provider and real probes (R0–R4), stand-in and calibration,
 orchestration and fault tolerance, five stand-in load scenarios, report tables (1, 2a, 2b), slow-request breakdown
-(stand-in), daily-quota user experience, 102 tests.
+(stand-in), daily-quota user experience, 111 tests.
 
 Pending:
 
@@ -300,7 +306,7 @@ Pending:
 |---|---|
 | Clean real retrieval evaluation (R5) and `steady_real` baseline (R6), 12 Nov on a fresh daily window | assistant runs, with approval |
 | Verify the 21 questions in `data/questions.json` (`user_verified`) | Satyabrata |
-| Hand-grade the answers in `results/grading/*.csv`, then `python -m experiments.apply_grades` | Satyabrata |
+| Hand-grade the answers of the clean R5 run in `results/grading/*.csv` (not `invalid_r5_attempt1/`), then `python -m experiments.apply_grades` | Satyabrata |
 | Real slow-request example (`--source real`) and Table 3 | after R5/R6 |
 | Optional: RPD idle-refill check (one tiny request after ≥ 1 h idle) | Satyabrata's approval |
 | Visit https://www.vaani.dev/ and write the Vaani feedback | Satyabrata |
@@ -320,7 +326,7 @@ Pending:
 
 ## Credits
 
-- **Project author:** Satyabrata.
+- **Project author:** Satyabrata Mishra.
 - **Built with AI assistance:** developed with an AI coding assistant (Cursor agent) under Satyabrata's direction;
   the conversation history is a required deliverable (pending export). Decisions marked "(User)" in
   `docs/DECISIONS.md` were made by Satyabrata; those marked "(Assistant)" were proposed by the assistant.

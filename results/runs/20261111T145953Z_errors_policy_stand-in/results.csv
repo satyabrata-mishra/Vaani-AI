@@ -1,0 +1,11 @@
+request_id,scenario,source,start_time,first_token_ms,total_ms,status,retries,tokens_in,tokens_out,retrieval_setting,answer_grade
+66c7bf6fec85,errors_policy,stand-in,2026-11-11T15:00:23.680+00:00,2694,2694,ok,0,899,188,medium_k4_rr,
+b397ace1d187,errors_policy,stand-in,2026-11-11T15:00:44.962+00:00,2863,2863,ok,0,1370,191,medium_k4_rr,
+2a2706262e2c,errors_policy,stand-in,2026-11-11T15:00:53.150+00:00,2826,2826,ok,0,1425,196,medium_k4_rr,
+218322eadc4b,errors_policy,stand-in,2026-11-11T15:00:57.647+00:00,2994,2994,ok,0,1370,191,medium_k4_rr,
+ca287cf6d741,errors_policy,stand-in,2026-11-11T15:01:08.380+00:00,3055,3055,ok,0,1367,107,medium_k4_rr,
+7111da0d8fc0,errors_policy,stand-in,2026-11-11T15:01:16.158+00:00,2613,2613,ok,0,1514,197,medium_k4_rr,
+3fac797c6de8,errors_policy,stand-in,2026-11-11T15:01:39.131+00:00,49,49,ok,0,0,0,medium_k4_rr,
+354fa9cb60ae,errors_policy,stand-in,2026-11-11T15:01:44.565+00:00,4281,4281,ok,0,2859,396,medium_k4_rr,
+c22ab4e7984c,errors_policy,stand-in,2026-11-11T15:01:54.271+00:00,3927,3927,ok,1,1306,159,medium_k4_rr,
+df8205c4685a,errors_policy,stand-in,2026-11-11T15:02:07.398+00:00,2957,2957,ok,0,1332,192,medium_k4_rr,

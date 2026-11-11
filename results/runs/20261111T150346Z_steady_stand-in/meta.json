@@ -1,0 +1,113 @@
+{
+  "run_id": "20261111T150346Z_steady_stand-in",
+  "scenario": {
+    "name": "steady",
+    "description": "Below capacity: ~4 questions/min for 10 min.",
+    "profile": "normal",
+    "rate_per_min": 4,
+    "duration_s": 600,
+    "arrival": "poisson",
+    "burst_size": 0,
+    "burst_at_s": 0.0,
+    "switch_to": null,
+    "switch_at_s": 0.0,
+    "deadline_s": 30.0,
+    "retrieval_setting": "medium_k4_rr",
+    "patience": {
+      "impatient_share": 0.2,
+      "impatient_s": [
+        8.0,
+        15.0
+      ],
+      "patient_s": 120.0
+    },
+    "retry": "policy"
+  },
+  "source": "stand-in",
+  "seed": 0,
+  "standin_scale": 1.0,
+  "started_utc": "2026-11-11T15:03:49+00:00",
+  "wall_s": 589.7,
+  "requests": 31,
+  "offered_per_min": 3.1,
+  "outcomes": {
+    "gave_up": 0,
+    "ok": 31
+  },
+  "peak_queue": 1,
+  "peak_in_flight": 1,
+  "retries_granted": 0,
+  "retries_denied_budget": 0,
+  "rerank_skipped": 0,
+  "learned_tpm_limit": null,
+  "daily_blocked": null,
+  "events": [],
+  "settings": {
+    "groq_base_url": "https://api.groq.com/openai/v1",
+    "standin_base_url": "http://127.0.0.1:57334/openai/v1",
+    "model": "openai/gpt-oss-20b",
+    "reasoning_effort": "low",
+    "max_output_tokens": 400,
+    "deadline_s": 30.0,
+    "queue_max": 50,
+    "max_in_flight": 4,
+    "tool_timeout_s": 4.0,
+    "provider_connect_timeout_s": 5.0,
+    "first_token_timeout_s": 6.0,
+    "expected_service_s": 1.0,
+    "expected_output_tokens": 150,
+    "rerank_slots": 1,
+    "refuse_below_rerank": -8.0,
+    "widen_below_rerank": 0.0,
+    "min_overlap": 0.4,
+    "degrade_tpm_headroom": 0.25,
+    "degrade_queue_len": 4,
+    "max_retries": 2,
+    "backoff_base_s": 0.5,
+    "backoff_cap_s": 8.0,
+    "retry_budget_ratio": 0.2,
+    "rpm_limit": 30,
+    "tpm_limit": 8000,
+    "rpd_limit": 1000,
+    "tpd_limit": 200000
+  },
+  "git": {
+    "commit": "1d433536e11595f5e29727958a14781408eb2f0d",
+    "dirty": true
+  },
+  "standin_state": {
+    "profile": "normal",
+    "description": "Calibrated Groq free tier for openai/gpt-oss-20b (R0-R4).",
+    "seed": 0,
+    "scale": 1.0,
+    "limits": {
+      "rpm": 30,
+      "tpm": 8000,
+      "rpd": 1000,
+      "tpd": 200000,
+      "rpm_burst": 22
+    },
+    "capacity": 64,
+    "faults": {
+      "error_rate": 0.0,
+      "midstream_error_rate": 0.0,
+      "hang_rate": 0.0,
+      "hang_s": 300.0
+    },
+    "in_flight": 0,
+    "peak_in_flight": 1,
+    "outcomes": {
+      "ok": 31
+    },
+    "day_requests": 31,
+    "day_tokens": 45814,
+    "headers": {
+      "x-ratelimit-limit-requests": "1000",
+      "x-ratelimit-remaining-requests": "969",
+      "x-ratelimit-reset-requests": "44m38.4s",
+      "x-ratelimit-limit-tokens": "8000",
+      "x-ratelimit-remaining-tokens": "6334",
+      "x-ratelimit-reset-tokens": "12.49s"
+    }
+  }
+}

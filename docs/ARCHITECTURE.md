@@ -1,14 +1,15 @@
 # Architecture — The Relay
 
-Status: **implemented through Phase 5 (orchestration)**. Numbers marked *(doc)* come from Groq's documentation;
-numbers marked *(est)* are estimates. Measured values are in `docs/EXPERIMENTS.md`.
+Status: **implemented and tested** (111 tests, none use Groq quota). Numbers marked *(doc)* come from Groq's
+documentation; numbers marked *(est)* are design-time estimates. Measured values are in `docs/EXPERIMENTS.md`.
 
 ## 1. The constraint that shapes everything
 
 Primary model: `openai/gpt-oss-20b` on the Groq free tier: 30 RPM, 8K TPM, 1K RPD, 200K TPD *(doc)*.
 
 One answer ~= system prompt (~400 tokens) + retrieved passages (4 x ~300 = ~1,200) + question (~50)
-+ output (~300, plus reasoning tokens) ~= **2K tokens** *(est)*.
++ output (~300, plus reasoning tokens) ~= **2K tokens** *(est)*. Measured since: ~1,480 tokens per answer in the
+stand-in `steady` run, ~870 in degraded mode (Table 2b); real answers used 60–230 output tokens.
 
 - Tokens per minute: 8,000 / 2,000 ~= **4 answers per minute**. The 30-RPM limit is never the one we hit; **TPM binds first**.
 - Tokens per day: 200,000 / 2,000 ~= **100 answers per day** for the *whole account*, including our own experiments.
@@ -64,7 +65,7 @@ trace for every attempt, so the gap can be explained.
 ## 3. Request lifecycle and admission control
 
 ```
-arrive ─► admission check ─► bounded priority queue ─► concurrency slot ─► rate limiter (RPM + TPM + daily) ─► provider
+arrive ─► admission check ─► bounded FIFO queue ─► concurrency slot ─► rate limiter (RPM + TPM + daily) ─► provider
             │                       │                                                │
             │ reject now if the     │ drop if its deadline                           │ 429 → classify → retry with
             │ estimated wait > the  │ passes while waiting,                          │ backoff + jitter, only if the
@@ -81,7 +82,7 @@ arrive ─► admission check ─► bounded priority queue ─► concurrency s
 - **Re-ranker queue**: the CPU re-ranker (~1.2 s/query) runs one at a time with at most 2 waiting; beyond that, the query uses BM25 order (counted in `RetrievalTool.rerank_skipped`).
 - **Daily budget exhausted**: no model calls. The reply says that the provider's daily quota is used up, that no answer can be written, that nothing shown is generated, and when to retry (the provider's reset header as a UTC clock time, or "unknown" for the token limit); then the top 3 retrieved passages with their locations, labelled "relevant passages, not an answer". Status `rate_limited`. Exact text in EXPERIMENTS.md.
 
-Who is affected at each limit (to be confirmed by experiment):
+Who is affected at each limit (observed in the stand-in `burst`, `overload`, `limit_halved` and `daily_exhausted` runs, EXPERIMENTS.md):
 | Situation | Delayed | Dropped | Weaker answer |
 |---|---|---|---|
 | Near per-minute limit | requests whose estimated wait fits their deadline | requests whose deadline cannot be met (rejected at admission, not after waiting) | new requests while headroom is low (degraded retrieval) |
@@ -106,7 +107,8 @@ Stand-in behaviour (each knob calibrated from real probes or marked assumed):
 - load factor: latency multiplied by `1 + alpha * in_flight` (alpha assumed — the free tier cannot be loaded enough to measure it)
 - RPM / TPM / RPD / TPD limits with Groq-style headers and 429s; configurable (halved-limit profile)
 - random failure rate (5xx), slow-success rate (long tail), mid-stream disconnects
-- profiles: `normal`, `high_latency`, `flaky`, `rate_limited`, `daily_exhausted`, `heavy_concurrency`, `overload`
+- profiles: `normal`, `high_latency`, `flaky`, `rate_limited`, `daily_exhausted`, `heavy_concurrency`, `overload`,
+  `erroring` (20 % 500s, for the retry runs), `unlimited`
 
 ## 6. Retrieval
 
@@ -136,12 +138,14 @@ Stand-in behaviour (each knob calibrated from real probes or marked assumed):
 │   ├── infra/                  # admission.py (queue + semaphore), rate_limiter.py, token_bucket.py,
 │   │                           # retry.py, deadline.py, metrics.py
 │   ├── simulator/              # server.py, behavior.py, profiles.py, calibration.py, runner.py
-│   └── evaluation/             # questions.py, grading.py, report.py
-├── experiments/                # real_probe.py, calibrate.py, load_test.py, retrieval_eval.py
-├── data/                       # questions.json, built indexes (generated)
+│   └── evaluation/             # report.py (tables, --check), stats.py (nearest-rank percentiles)
+├── experiments/                # real_probe.py, analyze_probes.py, standin_check.py, scenarios.py, load_test.py,
+│                               # retrieval_offline.py, retrieval_eval.py, budget.py, apply_grades.py, runs.py,
+│                               # inspect_run.py, slow_request.py, pipeline_smoke.py
+├── data/                       # questions.json, standin_calibration.json, built indexes (generated)
 ├── papers/                     # the three PDFs + manifest.json (sha256)
-├── results/                    # traces, probe logs, run metadata, generated tables
-├── scripts/                    # fetch_papers.py
+├── results/                    # runs/<run_id>/, real_probe/, grading/, tables/, selected_runs.json
+├── scripts/                    # fetch_papers.py, find_in_papers.py
 ├── tests/
 ├── docs/
 ├── results.csv

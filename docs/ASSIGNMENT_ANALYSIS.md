@@ -16,12 +16,12 @@ Status legend: `[ ]` pending, `[~]` in progress, `[x]` done, `[U]` needs the use
 | F6 | Library = exactly 1706.03762v7, 2410.00037v1, 2507.07955v2 | `papers/` + `papers/manifest.json` (sha256) | [x] |
 | F7 | Every answer cites where in the papers it came from | citation = paper + arXiv id + section + page; uncited sentences are dropped, `verifier.py` | [x] |
 | F8 | Say "the papers do not say" instead of guessing | refuse-before-model (re-rank < -8), `NOT_IN_PAPERS` instruction, verifier refusal; quality on real model pending E7 | [~] |
-| F9 | Real hosted model on Groq free tier, own key | `app/providers/openai_compat.py` (tested offline), key via `GROQ_API_KEY` | [~] |
+| F9 | Real hosted model on Groq free tier, own key | `app/providers/openai_compat.py`, key via `GROQ_API_KEY`; used for R0–R4 and R5 attempt 1 | [x] |
 | F10 | Learn limits from docs AND from what the API returns at a limit | `experiments/real_probe.py`, R0-R4 logs and 429 bodies in `results/real_probe/` | [x] |
 | F11 | Stand-in service: slow, fails, refuses at limit, slower under load, streams | `app/simulator/` (separate process, Groq-compatible wire format, 8 profiles) | [x] |
 | F12 | Stand-in calibrated from real measurements | `app/simulator/calibration.py` + `experiments/standin_check.py` | [x] |
 | F13 | Implied by brief: "checks the reply before sending it" | `verifier.py` (whole answer checked before release, D5) | [x] |
-| F14 | Implied: people give up sooner than expected | server-side cancellation done (`client_gave_up`, tested); client patience in load generator pending | [~] |
+| F14 | Implied: people give up sooner than expected | cancellation (`client_gave_up`, tested) + seeded patience in the load generator (20 % give up after 8–15 s, assumed, D16) | [x] |
 | F15 | Implied: some calls succeed slowly instead of failing | stand-in slow-start tail + hangs; per-request deadline and first-token timeout (tested) | [x] |
 | F16 | Implied: limits change without notice | limiter adopts a changed TPM limit header and learns from 429s (tested with the halved profile) | [x] |
 
@@ -34,24 +34,25 @@ Status legend: `[ ]` pending, `[~]` in progress, `[x]` done, `[U]` needs the use
 | E4 | Sustained overload | stand-in run done (20/min, re-tuned after a too-gentle first run) | [x] |
 | E5 | Per-minute limit halved | stand-in run done (switch without notice at 240 s) | [x] |
 | E6 | Daily budget exhausted | stand-in run done (we will NOT deliberately exhaust the real quota) | [x] |
-| E7 | >= 15 self-written questions, graded | real; grading by the user by hand | [U] |
-| E8 | >= 3 retrieval settings (piece size, pieces fetched, re-rank) | real | [U] |
-| E9 | Tokens used per answer | tokens_in/out per request in every run; real numbers need R5/R6 | [~] |
-| E10 | "A number we could not have guessed without running it" | pick from results | [ ] |
-| E11 | One genuinely slow request split into waiting / working / retrying, before vs after first token | trace file (`experiments/slow_request.py`; stand-in example done, real example after R5/R6) | [~] |
+| E7 | >= 15 self-written questions, graded | 21 questions in `data/questions.json` (16 answerable, 5 not); user verifies them, then grades R5 by hand | [U] |
+| E8 | >= 3 retrieval settings (piece size, pieces fetched, re-rank) | 3 settings indexed and tested; real R5 run pending (first attempt invalid, see EXPERIMENTS.md) | [~] |
+| E9 | Tokens used per answer | tokens_in/out per request in every run; Table 2b has stand-in values; real values need R5/R6 | [~] |
+| E10 | "A number we could not have guessed without running it" | candidates: re-ranking (~1.0–1.4 s on CPU) takes longer than the Groq call (~0.6 s p50); 80.6 % of the slowest stand-in request was queue wait | [~] |
+| E11 | One genuinely slow request split into waiting / working / retrying, before vs after first token | `experiments/slow_request.py`; stand-in example done, real example after R5/R6 | [~] |
+| E12 | Retries: one case where retrying made things worse | stand-in runs `errors_*` and `errors_busy_*` (same arrivals; policy / none / naive); case: request #43 in the busy runs | [x] |
 
 ### Report (R) — max 2 pages, headings in this order
 | # | Heading | Needs | Status |
 |---|---|---|---|
-| 1 | What I built and why | design + the one decision that shaped it most | [ ] |
-| 2 | The real service and my stand-in | limits + how found; stand-in behaviour, calibration, where least like Groq | [ ] |
-| 3 | Results | TTFT and total at p50 and slow end (state percentiles and n), failures, given-up, per load shape; real vs stand-in; quality on >= 15 questions; tokens/answer | [ ] |
-| 4 | Where the time goes | one slow request, waiting/working/retrying, before/after first token, show evidence | [ ] |
-| 5 | When a limit is hit | per-minute and per-day: who is delayed, dropped, weaker answer, why | [ ] |
-| 5a | Retrieval: quality versus cost | >= 3 settings; quality, tokens, TTFT; choice + what happens near the limit | [ ] |
-| 5b | How this library will mislead a naive retriever | 3 ways, each with an example question | [ ] |
-| 6 | Retries | policy + one case where retrying made it worse | [ ] |
-| 7 | What the person sees | reply at 3pm when the daily budget is gone | [ ] |
+| 1 | What I built and why | design + the one decision that shaped it most | [~] drafted |
+| 2 | The real service and my stand-in | limits + how found; stand-in behaviour, calibration, where least like Groq | [~] drafted |
+| 3 | Results | TTFT and total at p50 and slow end (state percentiles and n), failures, given-up, per load shape; real vs stand-in; quality on >= 15 questions; tokens/answer | [~] stand-in drafted; real + quality pending R5/R6 |
+| 4 | Where the time goes | one slow request, waiting/working/retrying, before/after first token, show evidence | [~] stand-in drafted; real pending |
+| 5 | When a limit is hit | per-minute and per-day: who is delayed, dropped, weaker answer, why | [~] drafted |
+| 5a | Retrieval: quality versus cost | >= 3 settings; quality, tokens, TTFT; choice + what happens near the limit | [ ] pending R5 |
+| 5b | How this library will mislead a naive retriever | 3 ways, each with an example question | [~] drafted |
+| 6 | Retries | policy + one case where retrying made it worse | [~] drafted |
+| 7 | What the person sees | reply at 3pm when the daily budget is gone | [~] drafted |
 | 8 | What I'm unsure about, what I left out, what I learned | least certain assumption + what breaks; 2 things not built; 1 thing learned | [U] |
 | + | Your feedback on Vaani | visit vaani.dev; stood out, confused, one change | [U] |
 | last | How I worked with the assistant | real history; 3 prompts; 1 mistake caught; 1 overrule; what is yours (half page) | [U] |
@@ -61,20 +62,20 @@ Placement of the Vaani heading is not specified by the brief; we put it after he
 ### Tables (T) — copied into the report, recomputable from `results.csv`
 | ID | Table | Source of numbers | Status |
 |---|---|---|---|
-| T1 | Real limits: RPM, TPM, RPD, TPD, in-flight, response at limit, recovery; value + method + confidence | probe logs (`results/real_probe/`) + docs | [ ] |
-| T2a | Latency per scenario (>= 5 rows): real/stand-in, requests, duration s, offered rate/min, TTFT p50/p95/p99, total p50/p95/p99 | `results.csv` | [ ] |
-| T2b | Outcomes per scenario: success %, rate-limited %, timed out/given up %, retries/request, peak queue, tokens/answer, cost/1k answers | `results.csv` (+ price constant) | [ ] |
-| T3 | Retrieval settings (>= 3): questions, correct+cited %, wrong %, correctly refused %, tokens/answer, TTFT p50/p95, total p50/p95 | `results.csv` | [ ] |
+| T1 | Real limits: RPM, TPM, RPD, TPD, in-flight, response at limit, recovery; value + method + confidence | probe logs (`results/real_probe/`) + docs | [x] |
+| T2a | Latency per scenario (>= 5 rows): real/stand-in, requests, duration s, offered rate/min, TTFT p50/p95/p99, total p50/p95/p99 | `results.csv` | [x] 5 stand-in rows; real `steady_real` row pending R6 |
+| T2b | Outcomes per scenario: success %, rate-limited %, timed out/given up %, retries/request, peak queue, tokens/answer, cost/1k answers | `results.csv` (+ price constant) | [x] same as T2a |
+| T3 | Retrieval settings (>= 3): questions, correct+cited %, wrong %, correctly refused %, tokens/answer, TTFT p50/p95, total p50/p95 | `results.csv` | [ ] pending R5 + grading |
 
 Formatting rules: times in ms, percentages one decimal, "not measured" where absent, no invented numbers.
 
 ### Deliverables (D)
 | ID | Item | Status |
 |---|---|---|
-| D1 | Code | [ ] |
-| D2 | `results.csv` — exactly: `request_id,scenario,source,start_time,first_token_ms,total_ms,status,retries,tokens_in,tokens_out,retrieval_setting,answer_grade` | [ ] |
-| D3 | Raw results for real and stand-in runs (traces kept alongside) | [ ] |
-| D4 | 2-page report | [ ] |
+| D1 | Code | [x] |
+| D2 | `results.csv` — exactly: `request_id,scenario,source,start_time,first_token_ms,total_ms,status,retries,tokens_in,tokens_out,retrieval_setting,answer_grade` | [x] (checked by `report.py --check` and a test); real rows pending R5/R6 |
+| D3 | Raw results for real and stand-in runs (traces kept alongside) | [x] `results/runs/`, `results/real_probe/` |
+| D4 | 2-page report | [~] `docs/FINAL_REPORT.md` draft with [PENDING] markers |
 | D5 | Real, uncleaned conversation history with the assistant | [U] |
 
 ### Constraints (C)

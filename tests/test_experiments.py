@@ -29,6 +29,16 @@ def test_scenarios_cover_the_five_required_conditions():
     assert over.rate_per_min >= 2.5 * steady.rate_per_min
 
 
+def test_retry_variants_differ_only_in_retry_mode():
+    from experiments.scenarios import RETRY_SCENARIOS
+    for prefix in ("errors_", "errors_busy_"):
+        variants = [RETRY_SCENARIOS[prefix + m] for m in ("policy", "none", "naive")]
+        plans = [[(t, q["id"], p) for t, q, p in plan(s, 0)] for s in variants]
+        assert plans[0] == plans[1] == plans[2]
+        assert len({(s.profile, s.rate_per_min, s.duration_s, s.deadline_s) for s in variants}) == 1
+    assert RETRY_SCENARIOS["errors_busy_policy"].rate_per_min > RETRY_SCENARIOS["errors_policy"].rate_per_min
+
+
 def test_plan_is_reproducible_from_seed():
     sc = SCENARIOS["steady"]
     a, b, c = plan(sc, 7), plan(sc, 7), plan(sc, 8)
