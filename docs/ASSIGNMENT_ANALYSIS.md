@@ -37,7 +37,7 @@ Status legend: `[ ]` pending, `[~]` in progress, `[x]` done, `[U]` needs the use
 | E7 | >= 15 self-written questions, graded | 21 questions in `data/questions.json` (16 answerable, 5 not); user verifies them, then grades R5 by hand | [U] |
 | E8 | >= 3 retrieval settings (piece size, pieces fetched, re-rank) | 3 settings indexed and tested; real R5 run pending (first attempt invalid, see EXPERIMENTS.md) | [~] |
 | E9 | Tokens used per answer | tokens_in/out per request in every run; Table 2b has stand-in values; real values need R5/R6 | [~] |
-| E10 | "A number we could not have guessed without running it" | candidates: re-ranking (~1.0–1.4 s on CPU) takes longer than the Groq call (~0.6 s p50); 80.6 % of the slowest stand-in request was queue wait | [~] |
+| E10 | "A number we could not have guessed without running it" | candidates: re-ranking (≈1.0–1.4 s on CPU) takes longer than the Groq call (≈0.6 s p50); 80.6 % of the slowest stand-in request was queue wait | [~] |
 | E11 | One genuinely slow request split into waiting / working / retrying, before vs after first token | `experiments/slow_request.py`; stand-in example done, real example after R5/R6 | [~] |
 | E12 | Retries: one case where retrying made things worse | stand-in runs `errors_*` and `errors_busy_*` (same arrivals; policy / none / naive); case: request #43 in the busy runs | [x] |
 
@@ -131,7 +131,7 @@ Critical path: real probes must happen early, because the stand-in's calibration
 ## 5. Facts established so far (with evidence)
 
 - Paper versions verified from the arXiv stamp inside each PDF: `arXiv:1706.03762v7`, `arXiv:2410.00037v1`, `arXiv:2507.07955v2`. Checksums in `papers/manifest.json`.
-- Sizes (pypdf, 11 Nov 2026): Attention 15 pages / ~6.1K words (references from p.10); Moshi 66 pages / ~30.4K words (references from p.42); H-Net 39 pages / ~21.9K words (references from p.25). References and appendices are a large share of the text.
+- Sizes (pypdf, 11 Nov 2026): Attention 15 pages / ≈6.1K words (references from p.10); Moshi 66 pages / ≈30.4K words (references from p.42); H-Net 39 pages / ≈21.9K words (references from p.25). References and appendices are a large share of the text.
 - Groq docs (fetched 11 Nov 2026, https://console.groq.com/docs/rate-limits) list free-tier limits for `openai/gpt-oss-20b` as 30 RPM, 1K RPD, 8K TPM, 200K TPD. `llama-3.1-8b-instant` is now listed as Enterprise ("Contact Sales"), so it is not usable. **Documented, not yet measured.**
 - Groq headers per docs: `x-ratelimit-limit/remaining/reset-requests` refer to **RPD**; `...-tokens` refer to **TPM**; `retry-after` only on 429. There is no documented header for RPM or TPD.
 - Groq list price (https://console.groq.com/docs/models, 11 Nov 2026) for `openai/gpt-oss-20b`: $0.075 / 1M input tokens, $0.30 / 1M output tokens. Used for the cost-per-1,000-answers column, because the free tier itself costs $0.

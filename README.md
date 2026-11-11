@@ -85,12 +85,12 @@ question ─► 1 Intake ─► 2 Analyze ─► 3 Retrieve (TOOL) ─► 4 Deci
 | 5b Verify | per-sentence citation, paper, number and word-overlap checks | `app/pipeline/verifier.py` |
 | 6 Deliver | stream the verified answer with numbered sources | `app/main.py` |
 
-**Why verify the whole answer before streaming it?** Groq generates ~1,000 tokens/s, so waiting for a complete
-150-token answer costs ~0.15 s, and it guarantees no unverified sentence is ever shown (decision D5). `first_token_ms`
+**Why verify the whole answer before streaming it?** Groq generates ≈1,000 tokens/s, so waiting for a complete
+150-token answer costs ≈0.15 s, and it guarantees no unverified sentence is ever shown (decision D5). `first_token_ms`
 therefore means: request arrival → first token of the *verified* answer, queue wait included.
 
-**Why deterministic analysis and verification?** The binding limit is 8,000 tokens per minute: at ~1,650 tokens per
-answer that is ~4–5 answers per minute. An extra model call per question (query rewriting, LLM judge) would halve
+**Why deterministic analysis and verification?** The binding limit is 8,000 tokens per minute: at ≈1,650 tokens per
+answer that is ≈4–5 answers per minute. An extra model call per question (query rewriting, LLM judge) would halve
 capacity (D8).
 
 Each request ends with exactly one status:
@@ -107,7 +107,7 @@ Full design: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 ## Setup
 
 Requirements: Windows, macOS or Linux; Python 3.12+ (developed and tested on Python 3.13.6); internet access for the
-first run (paper download, ~90 MB re-ranker model).
+first run (paper download, ≈90 MB re-ranker model).
 
 ```powershell
 python -m pip install -r requirements.txt
@@ -175,7 +175,7 @@ python -m app.simulator.server --profile normal --port 8100 [--seed 0] [--scale 
 python -m experiments.standin_check                  # compare stand-in vs real on the same probe shapes
 ```
 
-- Calibrated from 107 real requests: first byte ≈ 498 ms + 27 ms per 1K input tokens, ~4 % slow starts, ~1,090
+- Calibrated from 107 real requests: first byte ≈ 498 ms + 27 ms per 1K input tokens, ≈4 % slow starts, ≈1,090
   tokens/s, RPM 30 (burst 22), TPM 8,000 checked on the prompt at admission, RPD 1,000.
 - Assumed (not measurable on the free tier): behaviour under heavy concurrency, failure rates, daily refill.
 - Profiles: `normal`, `unlimited`, `high_latency`, `flaky`, `rate_limited` (limits halved), `daily_exhausted`,
@@ -195,11 +195,11 @@ prompts it would send (`experiments/budget.py`). Ordinary tests never use quota.
 | `python -m experiments.real_probe budget\|smoke\|latency\|rpm\|tpm\|concurrency [--yes]` | real limit and latency probes (R0–R4) | yes |
 | `python -m experiments.analyze_probes` | summarise probe logs → `results/real_probe/summary.json` | no |
 | `python -m experiments.retrieval_offline` | retrieval hit rate per setting, no model | no |
-| `python -m experiments.load_test all` | five stand-in load scenarios (~32 min) | no |
-| `python -m experiments.load_test retries` | same load with our retry policy, no retries, naive retries; spare and busy (~35 min) | no |
+| `python -m experiments.load_test all` | five stand-in load scenarios (≈32 min) | no |
+| `python -m experiments.load_test retries` | same load with our retry policy, no retries, naive retries; spare and busy (≈35 min) | no |
 | `python -m experiments.load_test <scenario> --seed N` | one scenario | no |
-| `python -m experiments.load_test steady_real --backend real [--yes]` | real steady baseline (12 questions) | ~21K tokens |
-| `python -m experiments.retrieval_eval [--yes]` | 21 questions × 3 settings on Groq + grading sheets | ~96–114K tokens |
+| `python -m experiments.load_test steady_real --backend real [--yes]` | real steady baseline (12 questions) | ≈21K tokens |
+| `python -m experiments.retrieval_eval [--yes]` | 21 questions × 3 settings on Groq + grading sheets | ≈96–114K tokens |
 | `python -m experiments.apply_grades [--check]` | copy hand grades into `results.csv` | no |
 | `python -m experiments.slow_request --source stand-in\|real` | where one slow request's time went | no |
 | `python -m experiments.inspect_run [run_id]` | quick per-run breakdown | no |
@@ -239,14 +239,14 @@ Measured so far (from the generated tables; details in `results/tables/` and `do
 
 - **Groq free tier, `openai/gpt-oss-20b`:** 30 requests/min (429 names "RPM"), 8,000 tokens/min (header and 429),
   1,000 requests/day (header; not reached on purpose), 200,000 tokens/day (documentation only), ≥ 8 requests in flight
-  succeeded, 429 returned in ~60–80 ms with `retry-after` 2 s, recovery in ~3.7–4.5 s. First token p50 532 / 578 /
-  719 ms at ~310 / 1,258 / 2,548 input tokens.
+  succeeded, 429 returned in ≈60–80 ms with `retry-after` 2 s, recovery in ≈3.7–4.5 s. First token p50 532 / 578 /
+  719 ms at ≈310 / 1,258 / 2,548 input tokens.
 - **Stand-in load scenarios:** no request received a 429 — the client paced itself and learned the halved limit from
   headers. Burst: 18/29 answered, 11 turned away at arrival. Overload (17.4/min): 57/87 answered, 16 turned away, 14
   gave up while queued; first token p50 16.1 s. Slowest answered request: 29.0 s, 80.9 % of it queue wait.
 - **Retries (stand-in, calls failing at random):** with spare capacity retrying only helped; when busy it turned 6
   errors into 4 answers and 2 refusals at arrival, and made one person wait 3.8 s longer for the same non-answer.
-- **Stand-in calibration bug found and fixed:** it streamed ~4x slower than calibrated after the first token (Windows
+- **Stand-in calibration bug found and fixed:** it streamed ≈4x slower than calibrated after the first token (Windows
   timer rounding); all stand-in load runs were re-run.
 - **Table 3 (retrieval settings on real Groq): not measured yet.** The first real attempt was invalid (degraded mode
   was active) and is excluded; see `docs/EXPERIMENTS.md`.
@@ -320,7 +320,7 @@ Pending:
   cannot judge paraphrased meaning (D8).
 - The stand-in's answers are extractive, so stand-in runs say nothing about answer quality or refusals (D11).
 - Behaviour under heavy concurrency, failure rates and the daily refill are assumed in the stand-in, not measured.
-- The cross-encoder re-ranker runs on CPU (~1.0–1.4 s per query) and is the slowest stage when the queue is empty.
+- The cross-encoder re-ranker runs on CPU (≈1.0–1.4 s per query) and is the slowest stage when the queue is empty.
 - A request turned away for capacity has already paid for retrieval; checking admission first would save that CPU.
 - Patience of simulated people (20 % give up after 8–15 s) is an assumption.
 

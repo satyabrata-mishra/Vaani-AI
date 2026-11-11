@@ -7,12 +7,12 @@ documentation; numbers marked *(est)* are design-time estimates. Measured values
 
 Primary model: `openai/gpt-oss-20b` on the Groq free tier: 30 RPM, 8K TPM, 1K RPD, 200K TPD *(doc)*.
 
-One answer ~= system prompt (~400 tokens) + retrieved passages (4 x ~300 = ~1,200) + question (~50)
-+ output (~300, plus reasoning tokens) ~= **2K tokens** *(est)*. Measured since: ~1,480 tokens per answer in the
-stand-in `steady` run, ~870 in degraded mode (Table 2b); real answers used 60–230 output tokens.
+One answer ≈ system prompt (≈400 tokens) + retrieved passages (4 x ≈300 = ≈1,200) + question (≈50)
++ output (≈300, plus reasoning tokens) ≈ **2K tokens** *(est)*. Measured since: ≈1,480 tokens per answer in the
+stand-in `steady` run, ≈870 in degraded mode (Table 2b); real answers used 60–230 output tokens.
 
-- Tokens per minute: 8,000 / 2,000 ~= **4 answers per minute**. The 30-RPM limit is never the one we hit; **TPM binds first**.
-- Tokens per day: 200,000 / 2,000 ~= **100 answers per day** for the *whole account*, including our own experiments.
+- Tokens per minute: 8,000 / 2,000 ≈ **4 answers per minute**. The 30-RPM limit is never the one we hit; **TPM binds first**.
+- Tokens per day: 200,000 / 2,000 ≈ **100 answers per day** for the *whole account*, including our own experiments.
 
 Consequences:
 1. Retrieval size is not just a quality knob — it **is** the throughput knob. Halving the passage tokens nearly doubles capacity.
@@ -45,8 +45,8 @@ Consequences:
 ### Key design decision: verify the whole answer, then stream it (D5)
 
 The brief requires checking the reply before sending it, and also cares about time to first token. Sentence-by-sentence
-release was the first plan; measurement changed it: gpt-oss-20b generates ~1,000 tokens/s on Groq, so a whole
-150-token answer takes ~0.15 s after its first token. Waiting for the complete answer costs that little, and lets the
+release was the first plan; measurement changed it: gpt-oss-20b generates ≈1,000 tokens/s on Groq, so a whole
+150-token answer takes ≈0.15 s after its first token. Waiting for the complete answer costs that little, and lets the
 verifier see every sentence (and refuse or regenerate) before anything is shown.
 
 Therefore `first_token_ms` in `results.csv` = **request arrival → first token of the verified answer** (queue wait,
@@ -79,7 +79,7 @@ arrive ─► admission check ─► bounded FIFO queue ─► concurrency slot 
 - **Deadlines**: each request has one deadline; every stage receives the remaining time; the first-token timeout is min(6 s, remaining).
 - **Cancellation**: if the client disconnects, the request task is cancelled, which closes the upstream stream (the stand-in confirmed it stops charging tokens) and records `timeout / client_gave_up`.
 - **Degraded mode** (TPM headroom < 25 % or ≥ 4 waiting): 2 passages instead of 4 and no regeneration. Re-ranking stays on: it costs CPU, not provider tokens, and its score is what refuses off-topic questions (the first smoke run answered "capital of France" from Moshi's demo transcripts when degraded mode also dropped re-ranking). The answer is still verified.
-- **Re-ranker queue**: the CPU re-ranker (~1.2 s/query) runs one at a time with at most 2 waiting; beyond that, the query uses BM25 order (counted in `RetrievalTool.rerank_skipped`).
+- **Re-ranker queue**: the CPU re-ranker (≈1.2 s/query) runs one at a time with at most 2 waiting; beyond that, the query uses BM25 order (counted in `RetrievalTool.rerank_skipped`).
 - **Daily budget exhausted**: no model calls. The reply says that the provider's daily quota is used up, that no answer can be written, that nothing shown is generated, and when to retry (the provider's reset header as a UTC clock time, or "unknown" for the token limit); then the top 3 retrieved passages with their locations, labelled "relevant passages, not an answer". Status `rate_limited`. Exact text in EXPERIMENTS.md.
 
 Who is affected at each limit (observed in the stand-in `burst`, `overload`, `limit_halved` and `daily_exhausted` runs, EXPERIMENTS.md):

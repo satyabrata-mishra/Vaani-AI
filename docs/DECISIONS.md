@@ -23,7 +23,7 @@ Each entry: decision, alternatives, trade-off, who decided. "User" = Satyabrata 
 
 ## D5. Verify the whole answer, then stream it to the user (User, 11 Nov, after R1)
 - Originally proposed (Assistant): release each sentence once its citation verifies.
-- Measurement that changed it: on real Groq, generating ~90 output tokens takes 15–156 ms after the first token (~1,000 tokens/s); almost all latency is before the first token. Sentence-level release would save ~0.1 s for noticeably more complexity.
+- Measurement that changed it: on real Groq, generating ≈90 output tokens takes 15–156 ms after the first token (≈1,000 tokens/s); almost all latency is before the first token. Sentence-level release would save ≈0.1 s for noticeably more complexity.
 - Decision: the model's stream is consumed in full by the server, the whole answer is verified, then the verified answer is streamed to the user.
 - `first_token_ms` in `results.csv` = request arrival → first token of the *verified* answer delivered to the user (includes queue wait and verification). The provider's own first-token time is in the trace.
 - Cost: when the model is slow (stand-in under overload, long answers), the user's first token waits for the whole generation. That gap is measured, not assumed.
@@ -38,7 +38,7 @@ Each entry: decision, alternatives, trade-off, who decided. "User" = Satyabrata 
 - A user giving up is simulated by cancelling the request task when its patience runs out, which propagates to the upstream stream.
 
 ## D8. Deterministic code instead of model calls for analysis and verification (Assistant)
-- At ~2K tokens per answer and 8K TPM, every extra model call reduces capacity by roughly half.
+- At ≈2K tokens per answer and 8K TPM, every extra model call reduces capacity by roughly half.
 - Trade-off: rule-based verification cannot judge paraphrased meaning; it can catch hallucinated numbers, wrong citations and missing support. Known gap, stated in the report.
 
 ## D9. Things deliberately not built (user to confirm for report heading 8)
@@ -55,8 +55,8 @@ Each entry: decision, alternatives, trade-off, who decided. "User" = Satyabrata 
 - Cost: answer quality and refusal behaviour from stand-in runs mean nothing; `answer_grade` is left empty for them.
 
 ## D12. Stand-in calibration is checked, not just fitted (Assistant)
-- `experiments/standin_check.py` replays the real probe shapes against the stand-in. It caught two calibration errors (constant header→token gap; RPM burst 30 instead of a ~22-request bucket). Both were fixed from the raw logs.
-- It compared first-token times only, so it missed a third error: the stand-in streamed ~4x slower than calibrated after the first token (Windows timer rounding of short sleeps). Found from the load-run traces in Phase 13, fixed, tested, and all stand-in load runs re-run (EXPERIMENTS.md).
+- `experiments/standin_check.py` replays the real probe shapes against the stand-in. It caught two calibration errors (constant header→token gap; RPM burst 30 instead of a ≈22-request bucket). Both were fixed from the raw logs.
+- It compared first-token times only, so it missed a third error: the stand-in streamed ≈4x slower than calibrated after the first token (Windows timer rounding of short sleeps). Found from the load-run traces in Phase 13, fixed, tested, and all stand-in load runs re-run (EXPERIMENTS.md).
 
 ## D13. Degraded mode cuts prompt tokens, never re-ranking or verification (Assistant, Phase 5)
 - Degraded (TPM headroom < 25 % or ≥ 4 waiting): 2 passages instead of 4, no regeneration.

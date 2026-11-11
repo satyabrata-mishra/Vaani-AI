@@ -124,7 +124,7 @@ def table1() -> tuple[list[str], list[list[str]]]:
          f"{len(rpm)} bursts of tiny requests every 0.5 s until 429 (R2)", "high (measured twice)"],
         ["Tokens per minute", f"{h.get('x-ratelimit-limit-tokens', NM)} (header); 429 after "
                               f"{t0['tokens_accepted']} tokens in {t0['accepted_span_s']:.1f} s",
-         "~1.7K-token requests back-to-back until 429 (R3); 429 compares the new prompt with what is left",
+         "≈1.7K-token requests back-to-back until 429 (R3); 429 compares the new prompt with what is left",
          "high (measured)"],
         ["Requests per day", f"{h.get('x-ratelimit-limit-requests', NM)} (header); limit never reached",
          f"`x-ratelimit-limit-requests`; refill check: {rpd['used_according_to_header']} used by header vs "

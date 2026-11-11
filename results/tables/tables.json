@@ -17,7 +17,7 @@
    [
     "Tokens per minute",
     "8000 (header); 429 after 6904 tokens in 1.9 s",
-    "~1.7K-token requests back-to-back until 429 (R3); 429 compares the new prompt with what is left",
+    "\u22481.7K-token requests back-to-back until 429 (R3); 429 compares the new prompt with what is left",
     "high (measured)"
    ],
    [
