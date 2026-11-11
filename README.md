@@ -299,14 +299,14 @@ Pending:
 | Item | Who |
 |---|---|
 | Clean real retrieval evaluation (R5) and `steady_real` baseline (R6), 12 Nov on a fresh daily window | assistant runs, with approval |
-| Verify the 21 questions in `data/questions.json` (`user_verified`) | Subhrajeet |
-| Hand-grade the answers in `results/grading/*.csv`, then `python -m experiments.apply_grades` | Subhrajeet |
+| Verify the 21 questions in `data/questions.json` (`user_verified`) | Satyabrata |
+| Hand-grade the answers in `results/grading/*.csv`, then `python -m experiments.apply_grades` | Satyabrata |
 | Real slow-request example (`--source real`) and Table 3 | after R5/R6 |
-| Optional: RPD idle-refill check (one tiny request after ≥ 1 h idle) | Subhrajeet's approval |
-| Visit https://www.vaani.dev/ and write the Vaani feedback | Subhrajeet |
-| Export the AI-assistant conversation history | Subhrajeet |
-| Final report (≤ 2 pages): prompts, mistake caught, decision overruled, own contribution | Subhrajeet + assistant draft |
-| Decide: `uv` dependencies, Groq org id in raw probe logs, whether to commit the brief PDF | Subhrajeet |
+| Optional: RPD idle-refill check (one tiny request after ≥ 1 h idle) | Satyabrata's approval |
+| Visit https://www.vaani.dev/ and write the Vaani feedback | Satyabrata |
+| Export the AI-assistant conversation history | Satyabrata |
+| Final report (≤ 2 pages): prompts, mistake caught, decision overruled, own contribution | Satyabrata + assistant draft |
+| Decide: `uv` dependencies, Groq org id in raw probe logs, whether to commit the brief PDF | Satyabrata |
 
 ## Known limitations
 
@@ -320,10 +320,10 @@ Pending:
 
 ## Credits
 
-- **Project author:** Subhrajeet.
-- **Built with AI assistance:** developed with an AI coding assistant (Cursor agent) under Subhrajeet's direction;
+- **Project author:** Satyabrata.
+- **Built with AI assistance:** developed with an AI coding assistant (Cursor agent) under Satyabrata's direction;
   the conversation history is a required deliverable (pending export). Decisions marked "(User)" in
-  `docs/DECISIONS.md` were made by Subhrajeet; those marked "(Assistant)" were proposed by the assistant.
+  `docs/DECISIONS.md` were made by Satyabrata; those marked "(Assistant)" were proposed by the assistant.
 - **Assignment:** "The Relay" brief (`The_Relay_Assignment_Brief.pdf`).
 - **Papers:** the authors listed in [The paper library](#the-paper-library); PDFs from [arXiv](https://arxiv.org).
 - **Model and inference:** [Groq](https://groq.com) (free tier, OpenAI-compatible API) serving OpenAI's open-weight
