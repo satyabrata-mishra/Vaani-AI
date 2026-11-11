@@ -1,0 +1,41 @@
+{
+ "small_k6": {
+  "pieces": 423,
+  "by_paper": {
+   "attention": 50,
+   "moshi": 197,
+   "hnet": 176
+  },
+  "tokens_p50": 172,
+  "tokens_p95": 199,
+  "tokens_max": 200,
+  "tokens_min": 13,
+  "prompt_passage_tokens_est": 1032
+ },
+ "medium_k4_rr": {
+  "pieces": 250,
+  "by_paper": {
+   "attention": 32,
+   "moshi": 116,
+   "hnet": 102
+  },
+  "tokens_p50": 312,
+  "tokens_p95": 347,
+  "tokens_max": 350,
+  "tokens_min": 13,
+  "prompt_passage_tokens_est": 1248
+ },
+ "large_k2_rr": {
+  "pieces": 145,
+  "by_paper": {
+   "attention": 25,
+   "moshi": 62,
+   "hnet": 58
+  },
+  "tokens_p50": 442,
+  "tokens_p95": 695,
+  "tokens_max": 700,
+  "tokens_min": 13,
+  "prompt_passage_tokens_est": 884
+ }
+}

@@ -10,14 +10,14 @@ Status legend: `[ ]` pending, `[~]` in progress, `[x]` done, `[U]` needs the use
 |---|---|---|---|
 | F1 | Python / C++ / Go — we use Python 3.13 | whole repo | [x] |
 | F2 | Pipeline with >= 4 steps | `app/pipeline/orchestrator.py` (6 steps, see ARCHITECTURE.md) | [ ] |
-| F3 | >= 1 tool call | retrieval tool with its own timeout + fault injection, `app/pipeline/retrieval.py` | [ ] |
+| F3 | >= 1 tool call | retrieval tool with its own timeout + fault injection, `app/pipeline/retrieval.py` | [x] |
 | F4 | >= 1 branch or loop | budget/answerability branch + bounded re-retrieval / regeneration loop | [ ] |
-| F5 | One step retrieves passages from the library | `app/pipeline/retrieval.py` | [ ] |
+| F5 | One step retrieves passages from the library | `app/pipeline/retrieval.py` (BM25 + optional re-rank, 3 settings indexed) | [x] |
 | F6 | Library = exactly 1706.03762v7, 2410.00037v1, 2507.07955v2 | `papers/` + `papers/manifest.json` (sha256) | [x] |
 | F7 | Every answer cites where in the papers it came from | citation = paper + section + page, `verifier.py` | [ ] |
 | F8 | Say "the papers do not say" instead of guessing | refusal branch + verifier | [ ] |
-| F9 | Real hosted model on Groq free tier, own key | `app/providers/groq_provider.py`, key via `GROQ_API_KEY` | [ ] |
-| F10 | Learn limits from docs AND from what the API returns at a limit | `experiments/real_probe.py` | [U] |
+| F9 | Real hosted model on Groq free tier, own key | `app/providers/openai_compat.py` (tested offline), key via `GROQ_API_KEY` | [~] |
+| F10 | Learn limits from docs AND from what the API returns at a limit | `experiments/real_probe.py` written; runs need the key | [U] |
 | F11 | Stand-in service: slow, fails, refuses at limit, slower under load, streams | `app/simulator/` (separate process, Groq-compatible wire format) | [ ] |
 | F12 | Stand-in calibrated from real measurements | `app/simulator/calibration.py` | [ ] |
 | F13 | Implied by brief: "checks the reply before sending it" | `verifier.py` | [ ] |
@@ -28,7 +28,7 @@ Status legend: `[ ]` pending, `[~]` in progress, `[x]` done, `[U]` needs the use
 ### Experiments (E)
 | ID | Requirement | Backend | Status |
 |---|---|---|---|
-| E1 | Modest number of real requests: latency spread, limits, behaviour at a limit | real | [U] |
+| E1 | Modest number of real requests: latency spread, limits, behaviour at a limit | real — R0–R4 done (107 attempts, 50K tokens); RPD idle-refill check pending | [~] |
 | E2 | Steady load | stand-in (+ small real run if budget allows) | [ ] |
 | E3 | Sudden burst | stand-in | [ ] |
 | E4 | Sustained overload | stand-in | [ ] |

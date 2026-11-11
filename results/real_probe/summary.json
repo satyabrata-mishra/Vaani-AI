@@ -1,0 +1,414 @@
+{
+ "latency": {
+  "300": {
+   "tokens_in": {
+    "n": 8,
+    "min": 310,
+    "p50": 310,
+    "p95": 310,
+    "max": 310,
+    "mean": 310.0
+   },
+   "tokens_out": {
+    "n": 8,
+    "min": 91,
+    "p50": 93,
+    "p95": 95,
+    "max": 95,
+    "mean": 93.25
+   },
+   "reasoning_tokens": {
+    "n": 8,
+    "min": 15,
+    "p50": 15,
+    "p95": 15,
+    "max": 15,
+    "mean": 15.0
+   },
+   "headers_ms": {
+    "n": 8,
+    "min": 375.0,
+    "p50": 530.9999999999491,
+    "p95": 703.0000000004293,
+    "max": 703.0000000004293,
+    "mean": 519.5000000001073
+   },
+   "first_reasoning_ms": {
+    "n": 8,
+    "min": 391.00000000053114,
+    "p50": 532.0000000001528,
+    "p95": 796.0000000002765,
+    "max": 796.0000000002765,
+    "mean": 550.7500000001073
+   },
+   "first_token_ms": {
+    "n": 8,
+    "min": 391.00000000053114,
+    "p50": 532.0000000001528,
+    "p95": 796.0000000002765,
+    "max": 796.0000000002765,
+    "mean": 568.5000000000855
+   },
+   "total_ms": {
+    "n": 8,
+    "min": 453.0000000004293,
+    "p50": 609.9999999996726,
+    "p95": 828.0000000004293,
+    "max": 828.0000000004293,
+    "mean": 623.1250000000728
+   },
+   "after_first_token_ms": {
+    "n": 8,
+    "min": 15.000000000327418,
+    "p50": 46.99999999957072,
+    "p95": 78.00000000042928,
+    "max": 78.00000000042928,
+    "mean": 54.62499999998727
+   },
+   "gen_tokens_per_s": {
+    "n": 8,
+    "min": 871.5596330244977,
+    "p50": 1192.307692315033,
+    "p95": 2906.249999986123,
+    "max": 2906.249999986123,
+    "mean": 1488.033330351756
+   }
+  },
+  "1500": {
+   "tokens_in": {
+    "n": 8,
+    "min": 1258,
+    "p50": 1258,
+    "p95": 1258,
+    "max": 1258,
+    "mean": 1258.0
+   },
+   "tokens_out": {
+    "n": 8,
+    "min": 73,
+    "p50": 84,
+    "p95": 99,
+    "max": 99,
+    "mean": 84.0
+   },
+   "reasoning_tokens": {
+    "n": 8,
+    "min": 5,
+    "p50": 6,
+    "p95": 6,
+    "max": 6,
+    "mean": 5.875
+   },
+   "headers_ms": {
+    "n": 8,
+    "min": 375.0,
+    "p50": 469.00000000005093,
+    "p95": 688.0000000001019,
+    "max": 688.0000000001019,
+    "mean": 510.0000000001046
+   },
+   "first_reasoning_ms": {
+    "n": 8,
+    "min": 515.9999999996217,
+    "p50": 577.9999999995198,
+    "p95": 813.0000000001019,
+    "max": 813.0000000001019,
+    "mean": 605.499999999779
+   },
+   "first_token_ms": {
+    "n": 8,
+    "min": 532.0000000001528,
+    "p50": 577.9999999995198,
+    "p95": 813.0000000001019,
+    "max": 813.0000000001019,
+    "mean": 611.3749999999527
+   },
+   "total_ms": {
+    "n": 8,
+    "min": 609.0000000003783,
+    "p50": 655.9999999999491,
+    "p95": 875.0,
+    "max": 875.0,
+    "mean": 695.2499999999873
+   },
+   "after_first_token_ms": {
+    "n": 8,
+    "min": 61.99999999989814,
+    "p50": 77.99999999951979,
+    "p95": 155.99999999994907,
+    "max": 155.99999999994907,
+    "mean": 83.87500000003456
+   },
+   "gen_tokens_per_s": {
+    "n": 8,
+    "min": 538.4615384617142,
+    "p50": 1012.8205128149386,
+    "p95": 1225.8064516149173,
+    "max": 1225.8064516149173,
+    "mean": 990.8553754614089
+   }
+  },
+  "3000": {
+   "tokens_in": {
+    "n": 8,
+    "min": 2548,
+    "p50": 2548,
+    "p95": 2548,
+    "max": 2548,
+    "mean": 2548.0
+   },
+   "tokens_out": {
+    "n": 8,
+    "min": 82,
+    "p50": 85,
+    "p95": 99,
+    "max": 99,
+    "mean": 88.5
+   },
+   "reasoning_tokens": {
+    "n": 8,
+    "min": 5,
+    "p50": 6,
+    "p95": 6,
+    "max": 6,
+    "mean": 5.875
+   },
+   "headers_ms": {
+    "n": 8,
+    "min": 514.9999999994179,
+    "p50": 546.9999999995707,
+    "p95": 3625.0,
+    "max": 3625.0,
+    "mean": 958.8749999999209
+   },
+   "first_reasoning_ms": {
+    "n": 8,
+    "min": 686.9999999998981,
+    "p50": 702.9999999995198,
+    "p95": 3828.0000000004293,
+    "max": 3828.0000000004293,
+    "mean": 1130.7499999999209
+   },
+   "first_token_ms": {
+    "n": 8,
+    "min": 702.9999999995198,
+    "p50": 719.0000000000509,
+    "p95": 3828.0000000004293,
+    "max": 3828.0000000004293,
+    "mean": 1140.4999999998608
+   },
+   "total_ms": {
+    "n": 8,
+    "min": 734.0000000003783,
+    "p50": 780.9999999999491,
+    "p95": 3936.999999999898,
+    "max": 3936.999999999898,
+    "mean": 1210.6249999998226
+   },
+   "after_first_token_ms": {
+    "n": 8,
+    "min": 15.000000000327418,
+    "p50": 63.00000000010186,
+    "p95": 125.0,
+    "max": 125.0,
+    "mean": 70.1249999999618
+   },
+   "gen_tokens_per_s": {
+    "n": 8,
+    "min": 650.0000000027024,
+    "p50": 908.2568807383708,
+    "p95": 5799.999999873398,
+    "max": 5799.999999873398,
+    "mean": 1696.4953871657765
+   }
+  }
+ },
+ "rpm": [
+  {
+   "file_first_utc": "2026-11-11T05:42:02.833155+00:00",
+   "accepted_before_429": 30,
+   "accepted_span_s": 15.480299,
+   "tokens_accepted": 2820,
+   "first_429_message": "Rate limit reached for model `openai/gpt-oss-20b` in organization `org_01kt9cwp0dfvc8adz3q0d7g1sm` service tier `on_demand` on requests per minute (RPM): Limit 30, Used 30, Requested 1. Please try again in 2s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing",
+   "retry_after_values": [
+    2.0
+   ],
+   "remaining_tokens_on_429": null,
+   "recovery_s_after_first_429": 4.54700000000048,
+   "polls_before_recovery": 0,
+   "429_latency_ms": {
+    "n": 3,
+    "min": 61.99999999989814,
+    "p50": 78.99999999972351,
+    "p95": 155.99999999994907,
+    "max": 155.99999999994907,
+    "mean": 98.99999999985691
+   },
+   "remaining_tokens_trajectory": [
+    7906,
+    7866,
+    7859,
+    7830,
+    7809,
+    7789,
+    7772,
+    7752,
+    7724,
+    7697,
+    7672,
+    7644,
+    7623,
+    7596,
+    7571,
+    7544,
+    7522,
+    7494,
+    7483,
+    7463,
+    7441,
+    7413,
+    7393,
+    7365,
+    7349,
+    7326,
+    7309,
+    7283,
+    7256,
+    7230,
+    null,
+    null,
+    null,
+    7739
+   ]
+  },
+  {
+   "file_first_utc": "2026-11-11T05:45:08.608312+00:00",
+   "accepted_before_429": 30,
+   "accepted_span_s": 15.369338,
+   "tokens_accepted": 2820,
+   "first_429_message": "Rate limit reached for model `openai/gpt-oss-20b` in organization `org_01kt9cwp0dfvc8adz3q0d7g1sm` service tier `on_demand` on requests per minute (RPM): Limit 30, Used 30, Requested 1. Please try again in 2s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing",
+   "retry_after_values": [
+    2.0
+   ],
+   "remaining_tokens_on_429": null,
+   "recovery_s_after_first_429": 4.5,
+   "polls_before_recovery": 0,
+   "429_latency_ms": {
+    "n": 3,
+    "min": 61.99999999989814,
+    "p50": 63.00000000010186,
+    "p95": 155.99999999994907,
+    "max": 155.99999999994907,
+    "mean": 93.66666666664969
+   },
+   "remaining_tokens_trajectory": [
+    7906,
+    7895,
+    7889,
+    7855,
+    7832,
+    7806,
+    7785,
+    7756,
+    7731,
+    7703,
+    7681,
+    7651,
+    7636,
+    7615,
+    7591,
+    7564,
+    7535,
+    7510,
+    7484,
+    7459,
+    7431,
+    7411,
+    7386,
+    7365,
+    7337,
+    7311,
+    7291,
+    7270,
+    7248,
+    7229,
+    null,
+    null,
+    null,
+    7737
+   ]
+  }
+ ],
+ "tpm": [
+  {
+   "file_first_utc": "2026-11-11T05:45:48.339370+00:00",
+   "accepted_before_429": 4,
+   "accepted_span_s": 1.903275,
+   "tokens_accepted": 6904,
+   "first_429_message": "Rate limit reached for model `openai/gpt-oss-20b` in organization `org_01kt9cwp0dfvc8adz3q0d7g1sm` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 6567, Requested 1692. Please try again in 1.9425s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing",
+   "retry_after_values": [
+    2.0
+   ],
+   "remaining_tokens_on_429": 1433,
+   "recovery_s_after_first_429": 3.67200000000048,
+   "polls_before_recovery": 0,
+   "429_latency_ms": {
+    "n": 1,
+    "min": 141.00000000053114,
+    "p50": 141.00000000053114,
+    "p95": 141.00000000053114,
+    "max": 141.00000000053114,
+    "mean": 141.00000000053114
+   },
+   "remaining_tokens_trajectory": [
+    6308,
+    4673,
+    3034,
+    1356,
+    1433,
+    117
+   ]
+  }
+ ],
+ "concurrency": [
+  {
+   "n": 8,
+   "ok": 8,
+   "start_spread_ms": 61.99999999989814,
+   "headers_ms": {
+    "n": 8,
+    "min": 436.99999999989814,
+    "p50": 594.0000000000509,
+    "p95": 657.0000000001528,
+    "max": 657.0000000001528,
+    "mean": 578.3749999998236
+   },
+   "total_ms": {
+    "n": 8,
+    "min": 452.9999999995198,
+    "p50": 625.0,
+    "p95": 671.9999999995707,
+    "max": 671.9999999995707,
+    "mean": 597.8749999999309
+   },
+   "remaining_requests_day_seen": [
+    997,
+    998,
+    994,
+    995,
+    999,
+    995,
+    995,
+    998
+   ]
+  }
+ ],
+ "rpd_refill": {
+  "successful_requests_logged": 100,
+  "elapsed_s": 1079.286397,
+  "used_according_to_header": 98,
+  "predicted_if_continuous_refill": 87.50825929398148,
+  "predicted_if_no_refill": 100,
+  "rejected_429_consumed_daily_requests": 0
+ }
+}

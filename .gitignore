@@ -1,8 +1,41 @@
+# Secrets — never commit (copy .env.example instead)
 .env
+.env.*
+!.env.example
+
+# Python
 __pycache__/
-*.pyc
-.pytest_cache/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Virtual environments
 .venv/
 venv/
-data/index/
+env/
+
+# Tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Downloaded re-ranker model (fastembed / Hugging Face cache, ~90 MB)
 .cache/
+
+# Derived data — rebuilt by `python -m app.ingest.build_index`
+data/parsed/
+data/index/*
+!data/index/stats.json
+
+# Editors and OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs from ad-hoc runs (experiment logs live in results/ and ARE committed)
+*.log

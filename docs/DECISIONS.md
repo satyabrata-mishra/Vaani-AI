@@ -21,9 +21,12 @@ Each entry: decision, alternatives, trade-off, who decided. "User" = Subhrajeet;
 - The waiting/working/retrying breakdown (report section 4) comes from the trace, not a table.
 - `answer_grade` is empty for requests that were never graded (failed requests, stand-in load runs). This is stated in the report.
 
-## D5. Verify-then-release per sentence (Assistant — candidate for user review)
-- See ARCHITECTURE.md §2. Costs some time to first token; guarantees that no unverified sentence is shown.
-- `first_token_ms` = arrival → first verified token delivered to the user, including queue wait.
+## D5. Verify the whole answer, then stream it to the user (User, 11 Nov, after R1)
+- Originally proposed (Assistant): release each sentence once its citation verifies.
+- Measurement that changed it: on real Groq, generating ~90 output tokens takes 15–156 ms after the first token (~1,000 tokens/s); almost all latency is before the first token. Sentence-level release would save ~0.1 s for noticeably more complexity.
+- Decision: the model's stream is consumed in full by the server, the whole answer is verified, then the verified answer is streamed to the user.
+- `first_token_ms` in `results.csv` = request arrival → first token of the *verified* answer delivered to the user (includes queue wait and verification). The provider's own first-token time is in the trace.
+- Cost: when the model is slow (stand-in under overload, long answers), the user's first token waits for the whole generation. That gap is measured, not assumed.
 
 ## D6. One OpenAI-compatible HTTP provider for both Groq and the stand-in (Assistant)
 - The stand-in imitates Groq's endpoint, SSE format, usage block, headers and 429s.
