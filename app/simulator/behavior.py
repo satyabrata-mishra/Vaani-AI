@@ -16,45 +16,13 @@ import re
 import time
 from dataclasses import dataclass, field
 
-from app.ingest.chunker import approx_tokens
+from app.infra.token_bucket import TokenBucket  # noqa: F401  (re-exported for tests)
+from app.ingest.chunker import approx_tokens, count_prompt_tokens  # noqa: F401
 
 LIMIT_NAMES = {
     "RPM": "requests per minute", "TPM": "tokens per minute",
     "RPD": "requests per day", "TPD": "tokens per day",
 }
-
-
-class TokenBucket:
-    """Continuously refilling bucket. `level` may go negative (debt) when actual usage is charged
-    after admission, which is how Groq's remaining-tokens header behaved."""
-
-    def __init__(self, capacity: float, per_second: float, clock=time.monotonic):
-        self.capacity = capacity
-        self.per_second = per_second
-        self.clock = clock
-        self.level = capacity
-        self.t = clock()
-
-    def _refill(self):
-        now = self.clock()
-        self.level = min(self.capacity, self.level + (now - self.t) * self.per_second)
-        self.t = now
-
-    def available(self) -> float:
-        self._refill()
-        return self.level
-
-    def charge(self, n: float):
-        self._refill()
-        self.level -= n
-
-    def seconds_until(self, n: float) -> float:
-        self._refill()
-        if self.level >= n:
-            return 0.0
-        if self.per_second <= 0:
-            return math.inf
-        return (n - self.level) / self.per_second
 
 
 def format_duration(seconds: float) -> str:
@@ -202,11 +170,6 @@ def extractive_answer(messages: list[dict], target_tokens: int) -> str:
         if used >= target_tokens:
             break
     return " ".join(parts) if parts else "NOT_IN_PAPERS"
-
-
-def count_prompt_tokens(messages: list[dict]) -> int:
-    # Calibrated against R1: chat formatting adds roughly 10 tokens per message.
-    return sum(approx_tokens(m.get("content", "")) + 10 for m in messages)
 
 
 @dataclass

@@ -19,6 +19,11 @@ def approx_tokens(text: str) -> int:
     return max(1, math.ceil(len(text) / CHARS_PER_TOKEN))
 
 
+def count_prompt_tokens(messages: list[dict]) -> int:
+    # Calibrated against R1: chat formatting adds roughly 10 tokens per message.
+    return sum(approx_tokens(m.get("content", "")) + 10 for m in messages)
+
+
 @dataclass
 class Chunk:
     chunk_id: str

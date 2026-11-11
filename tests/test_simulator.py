@@ -1,22 +1,15 @@
 import asyncio
 import random
-import socket
-import threading
-import time
 from dataclasses import replace
 
 import httpx
 import pytest
-import uvicorn
 
-from app.config import load_settings
 from app.providers.base import (RATE_LIMITED, SERVER, TIMEOUT_BEFORE_FIRST_TOKEN, ProviderError,
                                 limit_kind_from_message, parse_duration_s)
-from app.providers.openai_compat import OpenAICompatProvider
 from app.simulator.behavior import (Faults, Limits, RateLimiter, TokenBucket, extractive_answer,
                                     format_duration)
 from app.simulator.profiles import build_profiles, calibrated_normal
-from app.simulator.server import create_app
 
 
 class FakeClock:
@@ -107,38 +100,6 @@ def test_profiles_exist_and_differ_from_normal():
 
 
 # --- integration: real server over HTTP ------------------------------------------------------
-
-def _free_port():
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
-
-
-@pytest.fixture
-def standin():
-    servers = []
-
-    def start(profile="normal", scale=0.05, **changes):
-        profiles = build_profiles()
-        if changes:
-            profiles[profile] = replace(profiles[profile], **changes)
-        app = create_app(profile, seed=0, scale=scale, profiles=profiles)
-        port = _free_port()
-        server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="error"))
-        th = threading.Thread(target=server.run, daemon=True)
-        th.start()
-        deadline = time.time() + 10
-        while not server.started and time.time() < deadline:
-            time.sleep(0.02)
-        servers.append((server, th))
-        settings = load_settings(standin_base_url=f"http://127.0.0.1:{port}/openai/v1")
-        return OpenAICompatProvider.standin(settings), app, f"http://127.0.0.1:{port}"
-
-    yield start
-    for server, th in servers:
-        server.should_exit = True
-        th.join(timeout=5)
-
 
 PROMPT = [{"role": "system", "content": "Answer only from passages."},
           {"role": "user", "content": "Passages:\n[P1] Attention, §3.2.1, p.4\nWe scale the dot products by "

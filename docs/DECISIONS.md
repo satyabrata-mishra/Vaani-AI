@@ -49,6 +49,16 @@ Each entry: decision, alternatives, trade-off, who decided. "User" = Subhrajeet;
 ## D12. Stand-in calibration is checked, not just fitted (Assistant)
 - `experiments/standin_check.py` replays the real probe shapes against the stand-in. It caught two calibration errors (constant header→token gap; RPM burst 30 instead of a ~22-request bucket). Both were fixed from the raw logs.
 
+## D13. Degraded mode cuts prompt tokens, never re-ranking or verification (Assistant, Phase 5)
+- Degraded (TPM headroom < 25 % or ≥ 4 waiting): 2 passages instead of 4, no regeneration.
+- Re-ranking stays on because it costs CPU, not provider budget, and its score drives the refuse-before-model branch. Evidence: in the first stand-in smoke run, degraded mode also dropped re-ranking and "What is the capital of France?" was answered from Moshi's Appendix F transcripts; with re-ranking kept it is refused before any model call (score −10.4).
+- The re-ranker sheds load itself: one runs at a time, at most 2 wait, the rest use BM25 order.
+
+## D14. Status mapping and when a request is turned away (Assistant, Phase 5)
+- A refusal backed by evidence ("the papers don't say") is status `ok` — it is the correct product behaviour. Being turned away for capacity, or getting a passages-only reply because the daily budget is gone, is `rate_limited`. Full table in ARCHITECTURE.md §2.
+- `first_token_ms` is filled only for `ok`; capacity/timeout/error messages are not counted as a first token.
+- Requests are turned away at arrival when the estimated wait cannot fit their deadline, rather than queued to fail later. Evidence (stand-in, limits halved without notice, 12 simultaneous requests): 2 TPM 429s before the client learned the new limit from headers, then 7 requests turned away at arrival with no further 429s.
+
 ## D9. Things deliberately not built (draft, user to confirm)
 - Dense-embedding / hybrid retrieval.
 - Semantic answer caching (only exact-question caching of already verified answers is considered).

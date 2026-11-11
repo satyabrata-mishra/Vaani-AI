@@ -1,4 +1,4 @@
-# Assignment analysis — The Relay
+﻿# Assignment analysis — The Relay
 
 Source: `The_Relay_Assignment_Brief.pdf` (4 pages). Deadline agreed: **13 Nov 2026**.
 Status legend: `[ ]` pending, `[~]` in progress, `[x]` done, `[U]` needs the user (real-world action).
@@ -9,21 +9,21 @@ Status legend: `[ ]` pending, `[~]` in progress, `[x]` done, `[U]` needs the use
 | ID | Requirement (brief wording paraphrased) | Where it lands | Status |
 |---|---|---|---|
 | F1 | Python / C++ / Go — we use Python 3.13 | whole repo | [x] |
-| F2 | Pipeline with >= 4 steps | `app/pipeline/orchestrator.py` (6 steps, see ARCHITECTURE.md) | [ ] |
+| F2 | Pipeline with >= 4 steps | `app/pipeline/orchestrator.py` (6 steps, see ARCHITECTURE.md §2) | [x] |
 | F3 | >= 1 tool call | retrieval tool with its own timeout + fault injection, `app/pipeline/retrieval.py` | [x] |
-| F4 | >= 1 branch or loop | budget/answerability branch + bounded re-retrieval / regeneration loop | [ ] |
+| F4 | >= 1 branch or loop | decide branch (refuse / widen / degraded) + widen-once and regenerate-once loops, `orchestrator.py` | [x] |
 | F5 | One step retrieves passages from the library | `app/pipeline/retrieval.py` (BM25 + optional re-rank, 3 settings indexed) | [x] |
 | F6 | Library = exactly 1706.03762v7, 2410.00037v1, 2507.07955v2 | `papers/` + `papers/manifest.json` (sha256) | [x] |
-| F7 | Every answer cites where in the papers it came from | citation = paper + section + page, `verifier.py` | [ ] |
-| F8 | Say "the papers do not say" instead of guessing | refusal branch + verifier | [ ] |
+| F7 | Every answer cites where in the papers it came from | citation = paper + arXiv id + section + page; uncited sentences are dropped, `verifier.py` | [x] |
+| F8 | Say "the papers do not say" instead of guessing | refuse-before-model (re-rank < -8), `NOT_IN_PAPERS` instruction, verifier refusal; quality on real model pending E7 | [~] |
 | F9 | Real hosted model on Groq free tier, own key | `app/providers/openai_compat.py` (tested offline), key via `GROQ_API_KEY` | [~] |
-| F10 | Learn limits from docs AND from what the API returns at a limit | `experiments/real_probe.py` written; runs need the key | [U] |
+| F10 | Learn limits from docs AND from what the API returns at a limit | `experiments/real_probe.py`, R0-R4 logs and 429 bodies in `results/real_probe/` | [x] |
 | F11 | Stand-in service: slow, fails, refuses at limit, slower under load, streams | `app/simulator/` (separate process, Groq-compatible wire format, 8 profiles) | [x] |
 | F12 | Stand-in calibrated from real measurements | `app/simulator/calibration.py` + `experiments/standin_check.py` | [x] |
-| F13 | Implied by brief: "checks the reply before sending it" | `verifier.py` | [ ] |
-| F14 | Implied: people give up sooner than expected | client patience in load generator + server-side cancellation | [ ] |
-| F15 | Implied: some calls succeed slowly instead of failing | stand-in "slow success" mode + per-request deadlines | [ ] |
-| F16 | Implied: limits change without notice | limiter re-reads Groq rate-limit headers on every response | [ ] |
+| F13 | Implied by brief: "checks the reply before sending it" | `verifier.py` (whole answer checked before release, D5) | [x] |
+| F14 | Implied: people give up sooner than expected | server-side cancellation done (`client_gave_up`, tested); client patience in load generator pending | [~] |
+| F15 | Implied: some calls succeed slowly instead of failing | stand-in slow-start tail + hangs; per-request deadline and first-token timeout (tested) | [x] |
+| F16 | Implied: limits change without notice | limiter adopts a changed TPM limit header and learns from 429s (tested with the halved profile) | [x] |
 
 ### Experiments (E)
 | ID | Requirement | Backend | Status |

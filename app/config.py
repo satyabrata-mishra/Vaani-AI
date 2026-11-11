@@ -65,8 +65,19 @@ class Settings:
     deadline_s: float = 30.0
     queue_max: int = 50
     max_in_flight: int = 4
-    tool_timeout_s: float = 2.0
+    tool_timeout_s: float = 4.0            # re-rank alone measured 1.0-1.4 s on this CPU
     provider_connect_timeout_s: float = 5.0
+    first_token_timeout_s: float = 6.0     # slowest real start seen was ~3.6 s before headers
+    expected_service_s: float = 1.0        # typical model call, used to estimate queue wait
+    expected_output_tokens: int = 150      # reserved per call before actual usage is known
+    rerank_slots: int = 1
+
+    # Decide step (re-rank scores are ms-marco logits; see docs/EXPERIMENTS.md, retrieval findings)
+    refuse_below_rerank: float = -8.0      # clearly off-topic: refuse without a model call
+    widen_below_rerank: float = 0.0        # weak match: search once more with twice the candidates
+    min_overlap: float = 0.4               # verifier: share of claim words found in cited passages
+    degrade_tpm_headroom: float = 0.25     # below this share of TPM left, use the degraded setting
+    degrade_queue_len: int = 4             # or when this many requests already wait for the model
 
     # Retries
     max_retries: int = 2

@@ -1,7 +1,7 @@
 # Architecture — The Relay
 
-Status: **design (Phase 1)**. Numbers marked *(doc)* come from Groq's documentation and are not yet measured;
-numbers marked *(est)* are estimates to be replaced by measurements.
+Status: **implemented through Phase 5 (orchestration)**. Numbers marked *(doc)* come from Groq's documentation;
+numbers marked *(est)* are estimates. Measured values are in `docs/EXPERIMENTS.md`.
 
 ## 1. The constraint that shapes everything
 
@@ -33,27 +33,33 @@ Consequences:
 
 | Step | What it does | Kind | Can fail by |
 |---|---|---|---|
-| 1 Intake | request id, validation, deadline (default 30 s), arrival timestamp | app code | invalid input → 400 |
-| 2 Analyze | normalize question, extract key terms, detect paper names/aliases (e.g. "H-Net" → Dynamic Chunking paper), flag obvious out-of-scope | app code | — |
-| 3 Retrieve | BM25 over the chunk index (+ optional cross-encoder re-rank); returns passages with paper/section/page | **tool call** with timeout + injectable latency/failure | tool timeout → 1 retry, then refuse |
-| 4 Decide | branch on retrieval confidence and budget: refuse now / re-retrieve with expanded query (once) / proceed full / proceed degraded / wait / reject | app code | — |
-| 5a Generate | streaming chat completion with numbered passages; must cite `[P3]`-style ids or emit `NOT_IN_PAPERS` | **model call** | 429, 5xx, timeout, slow |
-| 5b Verify | per sentence: cited id must be a passage we sent; numbers in the sentence must appear in the cited passage; minimum content-word overlap | app code | unsupported sentence → withheld |
-| 6 Deliver | stream verified sentences, map `[P3]` → "Attention Is All You Need, §3.2.1, p.4" | app code | client gone → cancel upstream |
+| 1 Intake | request id, deadline (default 30 s), arrival timestamp (`orchestrator.Pipeline.handle`) | app code | — |
+| 2 Analyze | validate length, detect named papers by alias ("H-Net", "Helium", "original Transformer"...); "Transformer" alone means the Attention paper only if no other paper is named (`analyzer.py`) | app code | invalid input → status `error` |
+| 3 Retrieve | BM25 (+ cross-encoder re-rank); a comparison question naming 2+ papers searches each paper separately (`retrieval.py`) | **tool call**, timeout 4 s, injectable delay/failure | 1 retry, then status `error` (`tool_failed`) |
+| 4 Decide | refuse without a model call if top re-rank score < −8; if < 0, search once more with twice the candidates (LOOP); degraded mode if TPM headroom < 25 % or ≥ 4 requests wait | app code | — |
+| 5a Generate | streaming chat completion with numbered passages; must cite `[Pn]` or reply `NOT_IN_PAPERS` | **model call** through the gate (§3) | 429, 5xx, timeout, slow |
+| 5b Verify | per sentence: cites a passage we sent; cited passage is from the named paper; every multi-digit/decimal number appears in it; ≥ 40 % of content words appear in it (`verifier.py`) | app code | failing sentences dropped; none left → regenerate once (LOOP, not in degraded mode), else refuse |
+| 6 Deliver | stream the verified text, `[Pn]` renumbered `[1]..` with "Attention (arXiv 1706.03762v7), §3.2.1, p.4" sources | app code | client gone → task cancelled, upstream stream closed |
 
-### Key design decision: verify-then-release, sentence by sentence
+### Key design decision: verify the whole answer, then stream it (D5)
 
-The brief requires checking the reply before sending it, and also cares about time to first token. These pull against each other:
+The brief requires checking the reply before sending it, and also cares about time to first token. Sentence-by-sentence
+release was the first plan; measurement changed it: gpt-oss-20b generates ~1,000 tokens/s on Groq, so a whole
+150-token answer takes ~0.15 s after its first token. Waiting for the complete answer costs that little, and lets the
+verifier see every sentence (and refuse or regenerate) before anything is shown.
 
-| Option | User TTFT | Can a wrong claim reach the user? |
-|---|---|---|
-| Stream raw model tokens | best | yes |
-| Buffer the whole answer, verify, then send | worst (= full generation time) | no |
-| **Release each sentence once its citation verifies** (chosen) | model TTFT + one sentence | no unverified sentence is ever shown |
+Therefore `first_token_ms` in `results.csv` = **request arrival → first token of the verified answer** (queue wait,
+retrieval and verification included). It is filled only for status `ok`; the provider's own first-token time is in the
+trace for every attempt, so the gap can be explained.
 
-Therefore `first_token_ms` in `results.csv` means: **request arrival → first verified token delivered to the user** (queue wait included). The provider's own TTFT is recorded separately in the trace, so we can show where the gap comes from.
+### Statuses (exactly one per request)
 
-If a sentence fails verification it is withheld and the reply ends with a note saying which claim was dropped. If *no* sentence verifies, the system regenerates once (if deadline and budget allow), otherwise it refuses.
+| status | outcomes (trace field `outcome`) |
+|---|---|
+| `ok` | `answered`, `answered_partial` (some sentences dropped), `refused_no_evidence` (decided before the model), `refused_not_in_papers` (model said so), `refused_unverified` (nothing survived verification) |
+| `rate_limited` | `queue_full`, `wait_exceeds_deadline` (turned away at arrival), `daily_budget_exhausted_RPD/TPD` (passages-only reply), `provider_rate_limited` (429 after retries) |
+| `timeout` | `deadline` (expired while waiting or generating), `provider_timeout_*`, `client_gave_up` (cancelled) |
+| `error` | `provider_server`, `provider_connection`, `provider_client`, `tool_failed`, `invalid_input`, `unexpected_error` |
 
 ## 3. Request lifecycle and admission control
 
@@ -65,12 +71,14 @@ arrive ─► admission check ─► bounded priority queue ─► concurrency s
             │ remaining deadline    │ or the client has gone                         │ remaining deadline allows
 ```
 
-- **Bounded queue** (size configurable, default 50). When full: immediate rejection with a clear message — never unbounded growth.
-- **Concurrency**: `asyncio.Semaphore` on in-flight model calls (default 4; tuned from the concurrency probe).
-- **Rate limiter**: token buckets for RPM and TPM plus a daily request/token counter. It reserves *estimated* tokens before a call and corrects with *actual* usage after. It re-syncs from Groq's `x-ratelimit-remaining-*` headers on every response, because limits can change without notice.
-- **Deadlines**: each request carries an absolute deadline; every stage receives the remaining time; the provider call timeout = min(stage cap, remaining).
-- **Cancellation**: if the client disconnects, the request task is cancelled, which closes the upstream stream so no more output tokens are spent.
-- **Degraded mode** (when TPM headroom is low or the queue is long): fewer passages, no re-rank, no regeneration loop. The answer is still verified — degraded means shorter context, never unverified.
+- **Bounded queue** (`queue_max` 50). When full: immediate `rate_limited` reply — never unbounded growth.
+- **Early rejection**: on arrival the gate estimates the wait from tokens already queued, the TPM/RPM refill rates, any retry-after cooldown and the slots ahead; if wait + one service time exceeds the remaining deadline, the request is turned away now rather than failing late.
+- **Concurrency**: `asyncio.Semaphore` on in-flight model calls (default 4); waiters are served FIFO.
+- **Rate limiter** (`infra/rate_limiter.py`): token buckets for RPM (burst 22, fitted in R2) and TPM, plus daily counters. It reserves *estimated* tokens (prompt + 150 output) before a call and settles to *actual* usage after; a 429 settles to 0 (rejected calls cost nothing, R2). Headers can only lower our view (they arrive out of order under concurrency, R4), except a changed TPM *limit*, which is adopted. A 429 naming RPD/TPD blocks all further calls.
+- **Deadlines**: each request has one deadline; every stage receives the remaining time; the first-token timeout is min(6 s, remaining).
+- **Cancellation**: if the client disconnects, the request task is cancelled, which closes the upstream stream (the stand-in confirmed it stops charging tokens) and records `timeout / client_gave_up`.
+- **Degraded mode** (TPM headroom < 25 % or ≥ 4 waiting): 2 passages instead of 4 and no regeneration. Re-ranking stays on: it costs CPU, not provider tokens, and its score is what refuses off-topic questions (the first smoke run answered "capital of France" from Moshi's demo transcripts when degraded mode also dropped re-ranking). The answer is still verified.
+- **Re-ranker queue**: the CPU re-ranker (~1.2 s/query) runs one at a time with at most 2 waiting; beyond that, the query uses BM25 order (counted in `RetrievalTool.rerank_skipped`).
 - **Daily budget exhausted**: no model calls. Reply = an explicit message that the model's daily quota is used up, the reset time if known, and the top retrieved passages with their locations, clearly labelled as "relevant passages, not an answer". No generated claims.
 
 Who is affected at each limit (to be confirmed by experiment):
@@ -81,9 +89,11 @@ Who is affected at each limit (to be confirmed by experiment):
 
 ## 4. Retries
 
-- Retry only: 429 (honour `retry-after`), 5xx, connection errors, timeouts *before the first token*.
-- Never retry: 4xx other than 429, failures after tokens were already delivered, or when the remaining deadline is shorter than the expected backoff + expected call time.
-- Exponential backoff with full jitter, max 2 retries per model call, with a global retry budget (retries <= 20% of calls in a sliding window) to prevent retry storms.
+- Retry: 429 for RPM/TPM (wait = `retry-after` + 0–0.25 s jitter), 5xx, connection errors, timeouts. Because the whole answer is buffered before release (D5), a failure after the first token is still invisible to the person and is retried too.
+- Never retry: other 4xx; 429 naming RPD/TPD (waiting cannot help); when wait + one expected call does not fit the remaining deadline.
+- Exponential backoff with full jitter (0.5 s × 2^n, cap 8 s), max 2 retries per model call. Shared retry budget: each first attempt earns 0.2 retries, each retry spends 1 (cap 10), so a provider-wide failure cannot multiply load by 3.
+- Each retry goes back through the gate (queue, limiter, slot), so retries are paced like new work.
+- `RetryPolicy(naive=True)` (immediate, ignores retry-after and budget) exists only for the "retries made it worse" experiment.
 
 ## 5. Model backends — one client, two servers
 
@@ -120,12 +130,12 @@ Stand-in behaviour (each knob calibrated from real probes or marked assumed):
 │   ├── config.py               # settings from env, retrieval settings, defaults
 │   ├── main.py                 # FastAPI app: POST /ask (SSE stream)
 │   ├── ingest/                 # parse_pdf.py, chunker.py, bm25.py, build_index.py
-│   ├── pipeline/               # orchestrator.py, analyzer.py, retrieval.py, decide.py,
-│   │                           # generator.py, verifier.py, prompts.py
+│   ├── pipeline/               # orchestrator.py (steps 1, 4, 6 + generate loop), analyzer.py,
+│   │                           # retrieval.py, prompts.py, verifier.py
 │   ├── providers/              # base.py, openai_compat.py (Groq and stand-in)
-│   ├── infra/                  # admission.py (queue + semaphore), rate_limiter.py,
+│   ├── infra/                  # admission.py (queue + semaphore), rate_limiter.py, token_bucket.py,
 │   │                           # retry.py, deadline.py, metrics.py
-│   ├── simulator/              # server.py, behavior.py, profiles.py
+│   ├── simulator/              # server.py, behavior.py, profiles.py, calibration.py, runner.py
 │   └── evaluation/             # questions.py, grading.py, report.py
 ├── experiments/                # real_probe.py, calibrate.py, load_test.py, retrieval_eval.py
 ├── data/                       # questions.json, built indexes (generated)
@@ -141,5 +151,5 @@ Stand-in behaviour (each knob calibrated from real probes or marked assumed):
 Differences from the suggested layout, and why:
 - One `openai_compat.py` provider instead of separate Groq and simulator providers: the stand-in mimics Groq's protocol, so one client exercises the real code path in every test.
 - `ingest/` split out of `pipeline/`: indexing happens offline, once per retrieval setting.
-- `context_manager.py` + budget checks became `decide.py` (the branch step), because that is where those decisions are made.
+- `context_manager.py` + budget checks became the decide step inside `orchestrator.py` (about 30 lines; a separate module added indirection without reuse). Generation lives there too, because its retry loop needs the trace, gate and deadline.
 - No `request_queue.py` / `concurrency.py` split: one `admission.py` owns queue + semaphore, so queue length and in-flight count are measured in one place.

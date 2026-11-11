@@ -25,6 +25,20 @@ python -m experiments.standin_check                       # compare stand-in vs 
 Profiles: `normal`, `high_latency`, `flaky`, `rate_limited`, `daily_exhausted`, `heavy_concurrency`, `overload`, `unlimited`.
 Switch at runtime: `POST http://127.0.0.1:8100/admin/profile {"name": "rate_limited"}`; inspect with `GET /admin/state` and `/admin/log`.
 
+## Run the assistant
+
+```powershell
+$env:BACKEND = "standin"; python -m uvicorn app.main:app --port 8000   # stand-in must be running on 8100
+$env:BACKEND = "real";    python -m uvicorn app.main:app --port 8000   # Groq, key from .env (spends quota)
+```
+
+`POST /ask {"question": "...", "retrieval_setting": "medium_k4_rr"}` streams server-sent events: `token` events with
+the verified answer, then one `done` event with status, outcome and sources. `GET /health` shows queue and budget state.
+Every request appends one row to `results.csv` and one trace to `results/traces.jsonl`.
+
+`python -m experiments.pipeline_smoke` runs all questions in `data/questions.json` through the pipeline against an
+in-process stand-in (no quota, nothing written to `results.csv`).
+
 ## Tests
 
 ```powershell
