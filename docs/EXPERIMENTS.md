@@ -74,6 +74,38 @@ Findings:
 
 Calibration targets for the stand-in (from the rows above): base first-token time ~ lognormal around 530 ms + ~90 ms per 1K input tokens; ~4% slow-start tail of ~3–4 s before headers; ~1,000 output tokens/s; 429 latency ~60–160 ms with `retry-after` rounded to whole seconds; RPM burst 30; TPM bucket 8,000 refilling continuously; 429s do not consume daily requests. Small samples (n = 24 latency), so the tail rate is uncertain.
 
+## Stand-in model service (Phase 4)
+
+`python -m app.simulator.server --profile normal --port 8100`. Same endpoint, SSE chunks, `usage` block, `x-ratelimit-*` headers, `retry-after` and 429 message text as Groq, so the pipeline's provider code is identical for both. Profiles: `normal` (calibrated), `high_latency`, `flaky`, `rate_limited` (per-minute limits halved), `daily_exhausted`, `heavy_concurrency`, `overload`, `unlimited`. Switchable at runtime via `POST /admin/profile`.
+
+### Calibration (`python -m app.simulator.calibration` → `data/standin_calibration.json`)
+| Parameter | Value | Source |
+|---|---|---|
+| First byte | 498 ms + 27 ms per 1K input tokens, lognormal sigma 0.17 | R1, n = 23 (fit) |
+| Headers → first token | 29 ms + 59 ms per 1K input tokens | R1, n = 24 (fit) — prefill continues after headers |
+| Slow-start tail | 4.2% of requests, +2–4 s before first byte | R1: 1 of 24 (+3.1 s); range assumed |
+| Generation | ~1,091 tokens/s; 6 reasoning tokens | R1 |
+| Slowdown per extra request in flight | 3.7% | R4 vs R2, n = 8 — low confidence |
+| RPM | refill 0.5/s, burst 22 | R2: fits both runs (30 accepted in ~15.4 s) and `retry-after: 2` |
+| TPM | 8,000-token bucket, continuous refill; prompt checked at admission, output charged after | R0, R3 |
+| RPD / TPD | 1,000 / 200,000, no refill during a run | header / documented |
+| 429 latency | 79 ms | R2 + R3, n = 7 |
+
+### Check: stand-in vs real on the same probe shapes (`python -m experiments.standin_check`, no quota)
+| Prompt | Real first token p50 (n = 8) | Stand-in first token p50 (n = 40) | RPM burst accepted | TPM burst accepted |
+|---|---|---|---|---|
+| ~310 tokens | 532 ms | 600 ms | real 30 / stand-in 30 | real 4 / stand-in 4 |
+| ~1.3K tokens | 578 ms | 713 ms | | |
+| ~2.6K tokens | 719 ms | 837 ms | | |
+
+The check caught two calibration errors, now fixed: (1) a constant headers→first-token gap made short prompts ~100 ms too slow and long prompts too fast — on Groq that gap grows with prompt size; (2) a plain 30-request bucket let 40 requests through where Groq allowed 30. The stand-in still runs ~70–120 ms slow at p50, partly because it counts 7–9% more prompt tokens than Groq (character-based estimate).
+
+### Where the stand-in is least like Groq
+1. **Behaviour under load — the biggest gap.** We never saw Groq under heavy load: 8 requests at once was the most we sent. The stand-in's slowdown per in-flight request is from one small sample, and its capacity queue and overload profile are invented. On Groq, slowness also comes from *other customers*, so it is not correlated with our own load; in the stand-in it is.
+2. **Failures are assumed.** 0 errors in 107 real attempts (so the true rate is probably < 3%); the 5xx, mid-stream errors and hangs in `flaky`/`overload` are not calibrated.
+3. **Answers are not real.** The stand-in quotes the first sentence of each passage and cites it; it never refuses unless it gets no passages. Answer quality is measured only on real Groq.
+4. **Daily budget refill** is not modelled (Groq's is unclear); the RPM algorithm is inferred, not documented.
+
 ## Load scenarios (stand-in)
 To be designed in Phase 8: steady, burst, sustained overload, per-minute limit halved, daily budget exhausted.
 

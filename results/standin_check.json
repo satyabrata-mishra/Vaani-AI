@@ -1,0 +1,98 @@
+{
+ "latency": {
+  "300": {
+   "first_byte": {
+    "n": 40,
+    "p50": 522.8381999986595,
+    "p95": 653.1359000000521,
+    "max": 669.896700001118
+   },
+   "first_token": {
+    "n": 40,
+    "p50": 599.7485000007146,
+    "p95": 730.2817000017967,
+    "max": 747.4124000000302
+   },
+   "total": {
+    "n": 40,
+    "p50": 616.4758000013535,
+    "p95": 745.8537999991677,
+    "max": 762.3624000007112
+   },
+   "tokens_in": {
+    "n": 40,
+    "p50": 311,
+    "p95": 311,
+    "max": 311
+   }
+  },
+  "1500": {
+   "first_byte": {
+    "n": 40,
+    "p50": 574.5649000018602,
+    "p95": 2841.4712000012514,
+    "max": 4069.864900000539
+   },
+   "first_token": {
+    "n": 40,
+    "p50": 713.0260999983875,
+    "p95": 2981.2278999997943,
+    "max": 4209.420099999988
+   },
+   "total": {
+    "n": 40,
+    "p50": 729.3959999988147,
+    "p95": 2996.8738999996276,
+    "max": 4225.874899999326
+   },
+   "tokens_in": {
+    "n": 40,
+    "p50": 1377,
+    "p95": 1377,
+    "max": 1377
+   }
+  },
+  "3000": {
+   "first_byte": {
+    "n": 40,
+    "p50": 620.7368000032147,
+    "p95": 820.8965999983775,
+    "max": 854.4048000003386
+   },
+   "first_token": {
+    "n": 40,
+    "p50": 837.0029000034265,
+    "p95": 1033.9361999976973,
+    "max": 1072.9151000014099
+   },
+   "total": {
+    "n": 40,
+    "p50": 853.2218000000285,
+    "p95": 1050.0584000001254,
+    "max": 1089.6622000000207
+   },
+   "tokens_in": {
+    "n": 40,
+    "p50": 2711,
+    "p95": 2711,
+    "max": 2711
+   }
+  }
+ },
+ "rpm": {
+  "accepted_before_429": 30,
+  "first_429": {
+   "message": "Rate limit reached for model `openai/gpt-oss-20b` in organization `org_standin` service tier `on_demand` on requests per minute (RPM): Limit 30, Used 30, Requested 1. Please try again in 353ms.",
+   "retry_after_s": 1.0,
+   "latency_ms": 93.77490000042599
+  }
+ },
+ "tpm": {
+  "accepted_before_429": 4,
+  "first_429": {
+   "message": "Rate limit reached for model `openai/gpt-oss-20b` in organization `org_standin` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 6940, Requested 1822. Please try again in 5.72s.",
+   "retry_after_s": 6.0,
+   "latency_ms": 92.83510000022943
+  }
+ }
+}

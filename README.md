@@ -14,6 +14,17 @@ copy .env.example .env      # then put your own GROQ_API_KEY in .env (never comm
 python scripts/fetch_papers.py
 ```
 
+## Stand-in model service
+
+```powershell
+python -m app.simulator.calibration                       # fit from results/real_probe/ (already committed)
+python -m app.simulator.server --profile normal --port 8100
+python -m experiments.standin_check                       # compare stand-in vs real probe shapes
+```
+
+Profiles: `normal`, `high_latency`, `flaky`, `rate_limited`, `daily_exhausted`, `heavy_concurrency`, `overload`, `unlimited`.
+Switch at runtime: `POST http://127.0.0.1:8100/admin/profile {"name": "rate_limited"}`; inspect with `GET /admin/state` and `/admin/log`.
+
 ## Tests
 
 ```powershell

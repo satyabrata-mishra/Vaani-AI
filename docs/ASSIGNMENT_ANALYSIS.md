@@ -18,8 +18,8 @@ Status legend: `[ ]` pending, `[~]` in progress, `[x]` done, `[U]` needs the use
 | F8 | Say "the papers do not say" instead of guessing | refusal branch + verifier | [ ] |
 | F9 | Real hosted model on Groq free tier, own key | `app/providers/openai_compat.py` (tested offline), key via `GROQ_API_KEY` | [~] |
 | F10 | Learn limits from docs AND from what the API returns at a limit | `experiments/real_probe.py` written; runs need the key | [U] |
-| F11 | Stand-in service: slow, fails, refuses at limit, slower under load, streams | `app/simulator/` (separate process, Groq-compatible wire format) | [ ] |
-| F12 | Stand-in calibrated from real measurements | `app/simulator/calibration.py` | [ ] |
+| F11 | Stand-in service: slow, fails, refuses at limit, slower under load, streams | `app/simulator/` (separate process, Groq-compatible wire format, 8 profiles) | [x] |
+| F12 | Stand-in calibrated from real measurements | `app/simulator/calibration.py` + `experiments/standin_check.py` | [x] |
 | F13 | Implied by brief: "checks the reply before sending it" | `verifier.py` | [ ] |
 | F14 | Implied: people give up sooner than expected | client patience in load generator + server-side cancellation | [ ] |
 | F15 | Implied: some calls succeed slowly instead of failing | stand-in "slow success" mode + per-request deadlines | [ ] |

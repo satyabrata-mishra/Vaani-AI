@@ -1,0 +1,109 @@
+{
+ "measured": {
+  "base_ms": {
+   "value": 498.3,
+   "n": 23,
+   "source": "R1 latency, linear fit of first-byte time"
+  },
+  "per_1k_input_ms": {
+   "value": 27.1,
+   "n": 23,
+   "source": "R1 latency, slope of the fit"
+  },
+  "sigma": {
+   "value": 0.174,
+   "n": 23,
+   "source": "R1, std of log residuals"
+  },
+  "tail_rate": {
+   "value": 0.0417,
+   "n": 24,
+   "source": "R1, first byte > 3x median",
+   "note": "1 of 24 requests"
+  },
+  "tail_extra_ms_observed": {
+   "value": [
+    3058
+   ],
+   "n": 1
+  },
+  "header_to_token_ms": {
+   "value": 29.1,
+   "n": 24,
+   "source": "R1, intercept of (first token - headers) vs input tokens"
+  },
+  "header_to_token_per_1k_input_ms": {
+   "value": 59.4,
+   "n": 24,
+   "source": "R1, slope: prefill happens after headers are sent"
+  },
+  "rpm_burst": {
+   "value": 22,
+   "n": 2,
+   "source": "R2: accepted - refill x span, per run",
+   "confidence": "medium: fits both runs and retry-after=2s, algorithm not documented"
+  },
+  "tokens_per_s": {
+   "value": 1091,
+   "n": 24,
+   "source": "R1, output tokens / (end - first reasoning token)"
+  },
+  "reasoning_tokens_p50": {
+   "value": 6,
+   "n": 24,
+   "source": "R1"
+  },
+  "rejection_ms_p50": {
+   "value": 79,
+   "n": 7,
+   "source": "R2+R3 429s"
+  },
+  "load_alpha": {
+   "value": 0.037,
+   "n": 8,
+   "source": "R4 (8 at once) vs R2 sequential first-byte medians",
+   "confidence": "low: one run of 8, tiny prompts"
+  },
+  "rpm": {
+   "value": 30,
+   "source": "R2: 30 accepted then 429 (two runs)"
+  },
+  "tpm": {
+   "value": 8000,
+   "source": "R0 header + R3 429 message"
+  },
+  "rpd": {
+   "value": 1000,
+   "source": "R0 header"
+  }
+ },
+ "assumed": {
+  "tail_extra_ms_range": {
+   "value": [
+    2000,
+    4000
+   ],
+   "reason": "one slow-start sample (~3.1 s extra); range around it is a guess"
+  },
+  "tpd": {
+   "value": 200000,
+   "reason": "documented; no header exposes it, not reached"
+  },
+  "rpm_algorithm": {
+   "value": "token bucket, refill rpm/60 per s, burst = measured rpm_burst",
+   "reason": "Groq's algorithm is not documented; this shape reproduces both R2 runs"
+  },
+  "daily_refill": {
+   "value": "none during a run",
+   "reason": "R0-R4 showed ~2 requests back in 18 min; not modelled"
+  },
+  "error_rate": {
+   "value": 0.0,
+   "reason": "no 5xx observed in 107 real attempts (rate < ~3% at 95% confidence)"
+  },
+  "load_alpha_beyond_8": {
+   "value": "linear",
+   "reason": "free tier cannot be loaded further to measure it"
+  }
+ }
+}

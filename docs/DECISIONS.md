@@ -41,6 +41,14 @@ Each entry: decision, alternatives, trade-off, who decided. "User" = Subhrajeet;
 - At ~2K tokens per answer and 8K TPM, every extra model call reduces capacity by roughly half.
 - Trade-off: rule-based verification cannot judge paraphrased meaning; it can catch hallucinated numbers, wrong citations and missing support. Known gap, stated in the report.
 
+## D11. Stand-in answers are extractive, not generated (Assistant)
+- The stand-in quotes the first sentence of each passage it receives and cites it as `[Pn]`; with no passages it answers `NOT_IN_PAPERS`.
+- Why: load tests need output that passes through the same verification step as real answers, with realistic length and timing, at zero cost. Faking "intelligent" answers would add nothing measurable.
+- Cost: answer quality and refusal behaviour from stand-in runs mean nothing; `answer_grade` is left empty for them.
+
+## D12. Stand-in calibration is checked, not just fitted (Assistant)
+- `experiments/standin_check.py` replays the real probe shapes against the stand-in. It caught two calibration errors (constant header→token gap; RPM burst 30 instead of a ~22-request bucket). Both were fixed from the raw logs.
+
 ## D9. Things deliberately not built (draft, user to confirm)
 - Dense-embedding / hybrid retrieval.
 - Semantic answer caching (only exact-question caching of already verified answers is considered).
