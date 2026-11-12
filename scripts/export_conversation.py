@@ -63,7 +63,8 @@ def main():
     arg = sys.argv[1] if len(sys.argv) > 1 else ""
     src = Path(arg) if arg.endswith(".jsonl") else newest_transcript(arg)
     OUT.mkdir(exist_ok=True)
-    shutil.copyfile(src, OUT / "transcript.jsonl")
+    if src.resolve() != (OUT / "transcript.jsonl").resolve():
+        shutil.copyfile(src, OUT / "transcript.jsonl")
     lines = src.read_text(encoding="utf-8").splitlines()
     (OUT / "CONVERSATION_HISTORY.md").write_text(render(lines), encoding="utf-8")
     print(f"{len(lines)} records from {src} -> {OUT.relative_to(ROOT)}/")

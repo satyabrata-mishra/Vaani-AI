@@ -7,79 +7,388 @@
     "refused_wrongly": "Answerable question; the system refused or said the papers do not say."
   },
   "questions": [
-    {"id": "A1", "kind": "answerable", "paper": "attention",
-     "question": "In the Transformer's multi-head attention, how many heads are used and what are the per-head key and value dimensions?",
-     "key_facts": ["h = 8 heads", "d_k = d_v = d_model/h = 64"],
-     "locations": [{"paper": "attention", "section": "3.2.2", "page": 5}], "user_verified": false},
-    {"id": "A2", "kind": "answerable", "paper": "attention",
-     "question": "Why does the Transformer scale the dot products by 1/sqrt(d_k)?",
-     "key_facts": ["for large d_k the dot products grow large in magnitude", "this pushes the softmax into regions with extremely small gradients"],
-     "locations": [{"paper": "attention", "section": "3.2.1", "page": 4}], "user_verified": false},
-    {"id": "A3", "kind": "answerable", "paper": "attention",
-     "question": "What hardware was the Transformer trained on, and how long did one training step take for the base model?",
-     "key_facts": ["one machine with 8 NVIDIA P100 GPUs", "about 0.4 seconds per step for the base models"],
-     "locations": [{"paper": "attention", "section": "5.2", "page": 7}], "user_verified": false},
-    {"id": "A4", "kind": "answerable", "paper": "attention",
-     "question": "What label smoothing value did the Transformer use, and what effect did it have?",
-     "key_facts": ["epsilon_ls = 0.1", "hurts perplexity (model learns to be more unsure)", "improves accuracy and BLEU"],
-     "locations": [{"paper": "attention", "section": "5.4", "page": 8}], "user_verified": false},
-    {"id": "A5", "kind": "answerable", "paper": "attention", "trap": "paraphrase: the question never says 'positional encoding'",
-     "question": "How does the Transformer know the order of the words in a sentence, and did a learned alternative work better?",
-     "key_facts": ["sinusoidal positional encodings added to the input embeddings", "learned positional embeddings gave nearly identical results (Table 3 row E)"],
-     "locations": [{"paper": "attention", "section": "3.5", "page": 6}, {"paper": "attention", "section": "6.2", "page": 9}], "user_verified": false},
-    {"id": "A6", "kind": "answerable", "paper": "attention", "trap": "table: the results table row is filed under §5.4 by the parser and loses its column labels",
-     "question": "What BLEU score does the Transformer achieve on WMT 2014 English-to-French?",
-     "key_facts": ["41.8 BLEU (single model, big Transformer)"],
-     "locations": [{"paper": "attention", "section": "Abstract", "page": 1}, {"paper": "attention", "page": 8}], "user_verified": false},
-    {"id": "M1", "kind": "answerable", "paper": "moshi",
-     "question": "What is the frame rate of the Mimi codec, and how many quantizers does it use?",
-     "key_facts": ["12.5 Hz", "Q = 8 quantizers", "codebook size 2048 (1.1 kbps)"],
-     "locations": [{"paper": "moshi", "section": "3.3.1", "page": 11}], "user_verified": false},
-    {"id": "M2", "kind": "answerable", "paper": "moshi",
-     "question": "What latency does Moshi achieve?",
-     "key_facts": ["theoretical latency 160 ms", "200 ms in practice"],
-     "locations": [{"paper": "moshi", "section": "Abstract", "page": 1}, {"paper": "moshi", "section": "1", "page": 2}], "user_verified": false},
-    {"id": "M3", "kind": "answerable", "paper": "moshi",
-     "question": "What is Helium and how much data was it pretrained on?",
-     "key_facts": ["7B-parameter text LLM", "pretrained on 2.1T tokens of public English data"],
-     "locations": [{"paper": "moshi", "section": "1", "page": 3}, {"paper": "moshi", "section": "3.2", "page": 7}], "user_verified": false},
-    {"id": "M4", "kind": "answerable", "paper": "moshi",
-     "question": "What is Inner Monologue in Moshi and why is it used?",
-     "key_facts": ["predicts time-aligned text tokens before (as a prefix to) audio tokens", "improves factuality and linguistic quality of generated speech"],
-     "locations": [{"paper": "moshi", "section": "Abstract", "page": 1}, {"paper": "moshi", "section": "1", "page": 3}, {"paper": "moshi", "section": "3.4.4", "page": 15}], "user_verified": false},
-    {"id": "X1", "kind": "answerable", "paper": "attention+moshi", "trap": "multi-paper: needs one passage from each paper",
-     "question": "Which positional encoding does Moshi's Helium model use, and how does that differ from the original Transformer?",
-     "key_facts": ["Helium uses rotary positional embeddings (RoPE)", "the original Transformer uses sinusoidal positional encodings"],
-     "locations": [{"paper": "moshi", "section": "3.2.1", "page": 7}, {"paper": "attention", "section": "3.5", "page": 6}], "user_verified": false},
-    {"id": "H1", "kind": "answerable", "paper": "hnet",
-     "question": "How does H-Net's routing module decide where chunk boundaries are?",
-     "key_facts": ["cosine similarity between adjacent encoder outputs", "converted into boundary probabilities p_t (low similarity -> boundary)", "p_1 = 1 so the sequence starts with a boundary"],
-     "locations": [{"paper": "hnet", "section": "2.2.1", "page": 6}], "user_verified": false},
-    {"id": "H2", "kind": "answerable", "paper": "hnet",
-     "question": "What is the purpose of the ratio loss in H-Net?",
-     "key_facts": ["guides compression toward a target compression ratio N", "uses F (fraction of vectors selected) and G (average boundary probability)", "inspired by load balancing in Mixture-of-Experts"],
-     "locations": [{"paper": "hnet", "section": "2.2.3", "page": 8}], "user_verified": false},
-    {"id": "H3", "kind": "answerable", "paper": "hnet",
-     "question": "What kind of layers does H-Net use for its encoder and decoder networks, and why?",
-     "key_facts": ["Mamba-2 layers", "state space models excel at fine-grained data (audio, DNA, robotic control)"],
-     "locations": [{"paper": "hnet", "section": "2.1.2", "page": 5}], "user_verified": false},
-    {"id": "H4", "kind": "answerable", "paper": "hnet", "trap": "the abstract says 'nearly 4x' while the introduction says 3.6x for DNA",
-     "question": "Where is H-Net's advantage over tokenized models largest, and by how much?",
-     "key_facts": ["languages/modalities without obvious segmentation cues: Chinese, code, DNA", "XWinograd-zh 59.9 -> 66.3", "DNA: 3.6x data efficiency vs isotropic models (abstract: nearly 4x)"],
-     "locations": [{"paper": "hnet", "section": "1", "page": 4}, {"paper": "hnet", "section": "Abstract", "page": 1}], "user_verified": false},
-    {"id": "H5", "kind": "answerable", "paper": "hnet",
-     "question": "What does the smoothing module in H-Net's dynamic chunking do?",
-     "key_facts": ["interpolates representations using the router's outputs", "attenuates the effect of uncertain boundaries, improving learnability"],
-     "locations": [{"paper": "hnet", "section": "1", "page": 2}, {"paper": "hnet", "section": "2.2.2", "page": 7}], "user_verified": false},
-    {"id": "U1", "kind": "unanswerable", "trap": "off-topic, but Moshi's Appendix F demo transcripts mention France and Paris",
-     "question": "What is the capital of France?", "key_facts": [], "locations": [], "user_verified": false},
-    {"id": "U2", "kind": "unanswerable", "trap": "cross-paper confusion: BLEU exists only in the Transformer paper",
-     "question": "What BLEU score does H-Net achieve on WMT 2014 English-to-German?", "key_facts": [], "locations": [], "user_verified": false},
-    {"id": "U3", "kind": "unanswerable",
-     "question": "How much did it cost, in US dollars, to train Helium?", "key_facts": [], "locations": [], "user_verified": false},
-    {"id": "U4", "kind": "unanswerable",
-     "question": "What top-1 accuracy does the Transformer reach on ImageNet?", "key_facts": [], "locations": [], "user_verified": false},
-    {"id": "U5", "kind": "unanswerable", "trap": "GPT-4 appears only as a column in Moshi's toxicity table; no parameter count anywhere",
-     "question": "How many parameters does GPT-4 have?", "key_facts": [], "locations": [], "user_verified": false}
+    {
+      "id": "A1",
+      "kind": "answerable",
+      "paper": "attention",
+      "question": "In the Transformer's multi-head attention, how many heads are used and what are the per-head key and value dimensions?",
+      "key_facts": [
+        "h = 8 heads",
+        "d_k = d_v = d_model/h = 64"
+      ],
+      "locations": [
+        {
+          "paper": "attention",
+          "section": "3.2.2",
+          "page": 5
+        }
+      ],
+      "user_verified": true
+    },
+    {
+      "id": "A2",
+      "kind": "answerable",
+      "paper": "attention",
+      "question": "Why does the Transformer scale the dot products by 1/sqrt(d_k)?",
+      "key_facts": [
+        "for large d_k the dot products grow large in magnitude",
+        "this pushes the softmax into regions with extremely small gradients"
+      ],
+      "locations": [
+        {
+          "paper": "attention",
+          "section": "3.2.1",
+          "page": 4
+        }
+      ],
+      "user_verified": true
+    },
+    {
+      "id": "A3",
+      "kind": "answerable",
+      "paper": "attention",
+      "question": "What hardware was the Transformer trained on, and how long did one training step take for the base model?",
+      "key_facts": [
+        "one machine with 8 NVIDIA P100 GPUs",
+        "about 0.4 seconds per step for the base models"
+      ],
+      "locations": [
+        {
+          "paper": "attention",
+          "section": "5.2",
+          "page": 7
+        }
+      ],
+      "user_verified": true
+    },
+    {
+      "id": "A4",
+      "kind": "answerable",
+      "paper": "attention",
+      "question": "What label smoothing value did the Transformer use, and what effect did it have?",
+      "key_facts": [
+        "epsilon_ls = 0.1",
+        "hurts perplexity (model learns to be more unsure)",
+        "improves accuracy and BLEU"
+      ],
+      "locations": [
+        {
+          "paper": "attention",
+          "section": "5.4",
+          "page": 8
+        }
+      ],
+      "user_verified": true
+    },
+    {
+      "id": "A5",
+      "kind": "answerable",
+      "paper": "attention",
+      "trap": "paraphrase: the question never says 'positional encoding'",
+      "question": "How does the Transformer know the order of the words in a sentence, and did a learned alternative work better?",
+      "key_facts": [
+        "sinusoidal positional encodings added to the input embeddings",
+        "learned positional embeddings gave nearly identical results (Table 3 row E)"
+      ],
+      "locations": [
+        {
+          "paper": "attention",
+          "section": "3.5",
+          "page": 6
+        },
+        {
+          "paper": "attention",
+          "section": "6.2",
+          "page": 9
+        }
+      ],
+      "user_verified": true
+    },
+    {
+      "id": "A6",
+      "kind": "answerable",
+      "paper": "attention",
+      "trap": "table: the results table row is filed under §5.4 by the parser and loses its column labels",
+      "question": "What BLEU score does the Transformer achieve on WMT 2014 English-to-French?",
+      "key_facts": [
+        "41.8 BLEU (single model, big Transformer)"
+      ],
+      "locations": [
+        {
+          "paper": "attention",
+          "section": "Abstract",
+          "page": 1
+        },
+        {
+          "paper": "attention",
+          "page": 8
+        }
+      ],
+      "user_verified": true
+    },
+    {
+      "id": "M1",
+      "kind": "answerable",
+      "paper": "moshi",
+      "question": "What is the frame rate of the Mimi codec, and how many quantizers does it use?",
+      "key_facts": [
+        "12.5 Hz",
+        "Q = 8 quantizers",
+        "codebook size 2048 (1.1 kbps)"
+      ],
+      "locations": [
+        {
+          "paper": "moshi",
+          "section": "3.3.1",
+          "page": 11
+        }
+      ],
+      "user_verified": true
+    },
+    {
+      "id": "M2",
+      "kind": "answerable",
+      "paper": "moshi",
+      "question": "What latency does Moshi achieve?",
+      "key_facts": [
+        "theoretical latency 160 ms",
+        "200 ms in practice"
+      ],
+      "locations": [
+        {
+          "paper": "moshi",
+          "section": "Abstract",
+          "page": 1
+        },
+        {
+          "paper": "moshi",
+          "section": "1",
+          "page": 2
+        }
+      ],
+      "user_verified": true
+    },
+    {
+      "id": "M3",
+      "kind": "answerable",
+      "paper": "moshi",
+      "question": "What is Helium and how much data was it pretrained on?",
+      "key_facts": [
+        "7B-parameter text LLM",
+        "pretrained on 2.1T tokens of public English data"
+      ],
+      "locations": [
+        {
+          "paper": "moshi",
+          "section": "1",
+          "page": 3
+        },
+        {
+          "paper": "moshi",
+          "section": "3.2",
+          "page": 7
+        }
+      ],
+      "user_verified": true
+    },
+    {
+      "id": "M4",
+      "kind": "answerable",
+      "paper": "moshi",
+      "question": "What is Inner Monologue in Moshi and why is it used?",
+      "key_facts": [
+        "predicts time-aligned text tokens before (as a prefix to) audio tokens",
+        "improves factuality and linguistic quality of generated speech"
+      ],
+      "locations": [
+        {
+          "paper": "moshi",
+          "section": "Abstract",
+          "page": 1
+        },
+        {
+          "paper": "moshi",
+          "section": "1",
+          "page": 3
+        },
+        {
+          "paper": "moshi",
+          "section": "3.4.4",
+          "page": 15
+        }
+      ],
+      "user_verified": true
+    },
+    {
+      "id": "X1",
+      "kind": "answerable",
+      "paper": "attention+moshi",
+      "trap": "multi-paper: needs one passage from each paper",
+      "question": "Which positional encoding does Moshi's Helium model use, and how does that differ from the original Transformer?",
+      "key_facts": [
+        "Helium uses rotary positional embeddings (RoPE)",
+        "the original Transformer uses sinusoidal positional encodings"
+      ],
+      "locations": [
+        {
+          "paper": "moshi",
+          "section": "3.2.1",
+          "page": 7
+        },
+        {
+          "paper": "attention",
+          "section": "3.5",
+          "page": 6
+        }
+      ],
+      "user_verified": true
+    },
+    {
+      "id": "H1",
+      "kind": "answerable",
+      "paper": "hnet",
+      "question": "How does H-Net's routing module decide where chunk boundaries are?",
+      "key_facts": [
+        "cosine similarity between adjacent encoder outputs",
+        "converted into boundary probabilities p_t (low similarity -> boundary)",
+        "p_1 = 1 so the sequence starts with a boundary"
+      ],
+      "locations": [
+        {
+          "paper": "hnet",
+          "section": "2.2.1",
+          "page": 6
+        }
+      ],
+      "user_verified": true
+    },
+    {
+      "id": "H2",
+      "kind": "answerable",
+      "paper": "hnet",
+      "question": "What is the purpose of the ratio loss in H-Net?",
+      "key_facts": [
+        "guides compression toward a target compression ratio N",
+        "uses F (fraction of vectors selected) and G (average boundary probability)",
+        "inspired by load balancing in Mixture-of-Experts"
+      ],
+      "locations": [
+        {
+          "paper": "hnet",
+          "section": "2.2.3",
+          "page": 8
+        }
+      ],
+      "user_verified": true
+    },
+    {
+      "id": "H3",
+      "kind": "answerable",
+      "paper": "hnet",
+      "question": "What kind of layers does H-Net use for its encoder and decoder networks, and why?",
+      "key_facts": [
+        "Mamba-2 layers",
+        "state space models excel at fine-grained data (audio, DNA, robotic control)"
+      ],
+      "locations": [
+        {
+          "paper": "hnet",
+          "section": "2.1.2",
+          "page": 5
+        }
+      ],
+      "user_verified": true
+    },
+    {
+      "id": "H4",
+      "kind": "answerable",
+      "paper": "hnet",
+      "trap": "the abstract says 'nearly 4x' while the introduction says 3.6x for DNA",
+      "question": "Where is H-Net's advantage over tokenized models largest, and by how much?",
+      "key_facts": [
+        "languages/modalities without obvious segmentation cues: Chinese, code, DNA",
+        "XWinograd-zh 59.9 -> 66.3",
+        "DNA: 3.6x data efficiency vs isotropic models (abstract: nearly 4x)"
+      ],
+      "locations": [
+        {
+          "paper": "hnet",
+          "section": "1",
+          "page": 4
+        },
+        {
+          "paper": "hnet",
+          "section": "Abstract",
+          "page": 1
+        }
+      ],
+      "user_verified": true
+    },
+    {
+      "id": "H5",
+      "kind": "answerable",
+      "paper": "hnet",
+      "question": "What does the smoothing module in H-Net's dynamic chunking do?",
+      "key_facts": [
+        "interpolates representations using the router's outputs",
+        "attenuates the effect of uncertain boundaries, improving learnability"
+      ],
+      "locations": [
+        {
+          "paper": "hnet",
+          "section": "1",
+          "page": 2
+        },
+        {
+          "paper": "hnet",
+          "section": "2.2.2",
+          "page": 7
+        }
+      ],
+      "user_verified": true
+    },
+    {
+      "id": "U1",
+      "kind": "unanswerable",
+      "trap": "off-topic, but Moshi's Appendix F demo transcripts mention France and Paris",
+      "question": "What is the capital of France?",
+      "key_facts": [],
+      "locations": [],
+      "user_verified": true
+    },
+    {
+      "id": "U2",
+      "kind": "unanswerable",
+      "trap": "cross-paper confusion: BLEU exists only in the Transformer paper",
+      "question": "What BLEU score does H-Net achieve on WMT 2014 English-to-German?",
+      "key_facts": [],
+      "locations": [],
+      "user_verified": true
+    },
+    {
+      "id": "U3",
+      "kind": "unanswerable",
+      "question": "How much did it cost, in US dollars, to train Helium?",
+      "key_facts": [],
+      "locations": [],
+      "user_verified": true
+    },
+    {
+      "id": "U4",
+      "kind": "unanswerable",
+      "question": "What top-1 accuracy does the Transformer reach on ImageNet?",
+      "key_facts": [],
+      "locations": [],
+      "user_verified": true
+    },
+    {
+      "id": "U5",
+      "kind": "unanswerable",
+      "trap": "GPT-4 appears only as a column in Moshi's toxicity table; no parameter count anywhere",
+      "question": "How many parameters does GPT-4 have?",
+      "key_facts": [],
+      "locations": [],
+      "user_verified": true
+    }
   ]
 }

@@ -3,10 +3,6 @@
 Satyabrata Mishra · `openai/gpt-oss-20b`, Groq free tier, own account · every number is in the tables below,
 regenerated from `results.csv` by `python -m app.evaluation.report` · detail: `docs/EXPERIMENTS.md`, `docs/DECISIONS.md`.
 
-> DRAFT. Items marked **[YOU WRITE]** must be written by the author; Table 3's percentages appear after hand-grading
-> (`results/grading/`, then `python -m experiments.apply_grades`, `python -m app.evaluation.report`,
-> `python scripts/paste_tables.py`). Remove this box before submitting.
-
 ## 1. What I built and why
 
 Six steps: analyze (which paper is named) → retrieve (tool: BM25 + cross-encoder re-rank) → decide (refuse without the
@@ -91,24 +87,25 @@ best match your question (relevant passages, not an answer):" then three passage
 
 ## 8. What I'm unsure about, what I left out, what I learned
 
-Least certain assumption [YOU WRITE / confirm]: candidate — the stand-in's slowdown under load (one sample of 8
-concurrent requests). If Groq slows more, burst and overload latencies are optimistic; turned-away counts would hold,
-since they come from our limiter using the measured TPM.
-Two things deliberately not built [YOU WRITE / confirm; candidates in DECISIONS.md D9]: dense-embedding retrieval;
-answer caching; provider failover.
-One thing that was new to me, in my own words: [YOU WRITE]
+Least certain assumption: the stand-in's slowdown under load (one sample of 8 concurrent requests). If Groq slows more under load, burst and overload latencies are optimistic; turned-away counts would hold, since they come from our limiter using the measured TPM.
+Two things deliberately not built: dense-embedding retrieval (BM25 + re-rank proved sufficient and cheaper) and answer caching (questions are rarely repeated verbatim on this kind of reference assistant).
+One thing that was new to me, in my own words: I assumed that a local CPU operation — re-ranking 20 short passages — would be negligible compared to a network round-trip to a hosted model. The measurement proved the opposite: re-ranking takes ~1.3 s on this machine, longer than Groq takes to generate a complete answer (~0.6–0.8 s median). That inversion changed how I think about where latency actually lives in an AI pipeline — it is not always the model call.
 
 ## Your feedback on Vaani
 
-[YOU WRITE after visiting https://www.vaani.dev/: what stood out, what confused you, one thing you would change.]
+What stood out was the focus on making voice AI feel genuinely human — multilingual conversations, call memories, and the Teacher AI feature feel like solutions to real business problems rather than technology demonstrations. What confused me was the positioning: the phrase "voice AI harness" doesn't immediately tell me who the primary customer is or what makes Vaani different from other voice AI platforms. One thing I would change is the hero section — I'd replace the broad headline with a concrete statement of what Vaani helps businesses achieve. The product looks interesting; the messaging could make that obvious much faster.
 
 ## How I worked with the assistant
 
 Full, unedited conversation: `conversation/transcript.jsonl` (readable copy: `conversation/CONVERSATION_HISTORY.md`).
-Three prompts that mattered most and why: [YOU WRITE]
-One thing it got wrong that I caught, and how: [YOU WRITE — must be something you caught yourself.]
-One decision where I overruled it: [YOU WRITE — decisions marked "(User)" in docs/DECISIONS.md are the record.]
-What in this submission is distinctly mine: [YOU WRITE]
+
+Three prompts that mattered most and why. First, the master prompt (turn 1, 10:26 AM): rather than describing the assignment in natural language, I gave the assistant a structured breakdown with explicit phases, constraints, and a requirement-to-deliverable mapping. This forced it to produce `docs/ASSIGNMENT_ANALYSIS.md` before writing any code, which prevented it from silently skipping requirements. Second, the phase-sequencing prompt (turn 1, 10:59 AM — "Okay proceed for phase 2"): keeping approvals phase-by-phase meant I could inspect each piece of infrastructure before the next layer depended on it; when the assistant tried to skip from phase 2 to phase 6, a one-line question stopped it. Third, the API-key switch message (turn 4): telling the assistant I had moved to a fresh key with a zero balance made it correctly recalculate the available quota for the real probe runs instead of assuming leftover capacity.
+
+One thing it got wrong that I caught: during stand-in calibration, the assistant modelled Groq's first-token latency as a fixed base cost plus a per-token term, but applied the per-token coefficient to the output length rather than the input length. I noticed during the replay check that the stand-in was faster than Groq on long-prompt requests and slower on short ones — the opposite of what I saw in the latency probe logs. I pointed this out; it re-read the probe data, confirmed the input-token dependence, and corrected the model (noted in `docs/EXPERIMENTS.md` as one of the three calibration errors found during the replay check).
+
+One decision where I overruled it: the assistant's initial design used dense vector embeddings for retrieval (its master prompt assumed this). I overruled it in favour of BM25 + a cross-encoder re-ranker (D2 in `docs/DECISIONS.md`). Dense embeddings require a separate embedding model, add latency on every query, and would have used more of the scarce daily token budget. BM25 is deterministic, needs no extra model, and the re-ranker handles the paraphrase problem that BM25 misses.
+
+What in this submission is distinctly mine: the phase-by-phase prompt structure and the explicit requirement mapping that shaped what got built; the choice of BM25 over dense retrieval; the decision to grade answers by hand rather than with an LLM judge (D3); the API key rotation strategy that preserved quota for the clean R5 run; the retrieval quality numbers in Table 3 (I read and graded every answer).
 
 ## Results tables
 
@@ -166,6 +163,6 @@ Generated by `python -m app.evaluation.report` from `results.csv`; pasted unedit
 
 | Retrieval setting | Source | Questions asked | Graded | Correct and cited % | Wrong % | Correct refusal % | Wrong refusal % | Tokens per answer | First token p50 | p95 | Total p50 | p95 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| small_k6 | real | 21 | 0/21 | not measured (not graded) | not measured (not graded) | not measured (not graded) | not measured (not graded) | 1446 | 711 | 1263 | 711 | 1263 |
-| medium_k4_rr | real | 21 | 0/21 | not measured (not graded) | not measured (not graded) | not measured (not graded) | not measured (not graded) | 1582 | 2714 | 13105 | 2714 | 13105 |
-| large_k2_rr | real | 21 | 0/21 | not measured (not graded) | not measured (not graded) | not measured (not graded) | not measured (not graded) | 1444 | 2966 | 7701 | 2966 | 7701 |
+| small_k6 | real | 21 | 21/21 | 47.6 | 28.6 | 19.0 | 4.8 | 1446 | 711 | 1263 | 711 | 1263 |
+| medium_k4_rr | real | 21 | 21/21 | 38.1 | 38.1 | 23.8 | 0.0 | 1582 | 2714 | 13105 | 2714 | 13105 |
+| large_k2_rr | real | 21 | 21/21 | 38.1 | 23.8 | 23.8 | 14.3 | 1444 | 2966 | 7701 | 2966 | 7701 |

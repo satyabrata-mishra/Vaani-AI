@@ -22,7 +22,7 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-ZIP = ROOT.parent / "The_Relay_submission.zip"
+ZIP = ROOT / "The_Relay_submission.zip"
 CONVERSATION_ID = "a2bc3cbf-3283-4580-900d-8595f778a8fa"
 KEY_PATTERN = re.compile(rb"gsk_[A-Za-z0-9]{20,}")
 PLACEHOLDERS = ("[YOU WRITE", "[PENDING", "> DRAFT")
@@ -59,7 +59,13 @@ def main() -> None:
     ap.add_argument("--draft", action="store_true", help="build even if checks find unfinished work")
     a = ap.parse_args()
 
-    print(run(sys.executable, "scripts/export_conversation.py", CONVERSATION_ID).strip())
+    try:
+        print(run(sys.executable, "scripts/export_conversation.py", CONVERSATION_ID).strip())
+    except SystemExit as e:
+        if (ROOT / "conversation" / "transcript.jsonl").is_file() and (ROOT / "conversation" / "CONVERSATION_HISTORY.md").is_file():
+            print("export_conversation: using existing conversation/ export")
+        else:
+            raise e
 
     problems = grading_problems()
     questions = json.loads((ROOT / "data" / "questions.json").read_text(encoding="utf-8"))["questions"]
