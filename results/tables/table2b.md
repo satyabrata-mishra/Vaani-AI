@@ -2,6 +2,8 @@
 
 | Scenario | Source | Requests | Success % | Rate-limited % | Timeout / gave up % | Error % | Retries per request | Peak queue | Degraded % | Tokens per answer | USD per 1,000 answers |
 |---|---|---|---|---|---|---|---|---|---|---|---|
+| steady_real | real | 12 | 100.0 | 0.0 | 0.0 (0 gave up) | 0.0 | 0.00 | 1 | 0.0 | 1504 | 0.146 |
+| retrieval_eval | real | 63 | 100.0 | 0.0 | 0.0 (0 gave up) | 0.0 | 0.08 | 1 | 0.0 | 1491 | 0.136 |
 | steady | stand-in | 31 | 100.0 | 0.0 | 0.0 (0 gave up) | 0.0 | 0.00 | 1 | 0.0 | 1478 | 0.149 |
 | burst | stand-in | 29 | 62.1 | 37.9 | 0.0 (0 gave up) | 0.0 | 0.00 | 5 | 41.4 | 1262 | 0.129 |
 | overload | stand-in | 87 | 65.5 | 18.4 | 16.1 (14 gave up) | 0.0 | 0.00 | 5 | 94.3 | 865 | 0.088 |

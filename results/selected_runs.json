@@ -9,5 +9,9 @@
   "errors_policy|stand-in": "20261111T153604Z_errors_policy_stand-in",
   "limit_halved|stand-in": "20261111T152310Z_limit_halved_stand-in",
   "overload|stand-in": "20261111T151743Z_overload_stand-in",
+  "retrieval_eval:large_k2_rr|real": "20261112T130220Z_retrieval_eval_large_k2_rr_real",
+  "retrieval_eval:medium_k4_rr|real": "20261112T125742Z_retrieval_eval_medium_k4_rr_real",
+  "retrieval_eval:small_k6|real": "20261112T125449Z_retrieval_eval_small_k6_real",
+  "steady_real|real": "20261112T130654Z_steady_real_real",
   "steady|stand-in": "20261111T150346Z_steady_stand-in"
 }

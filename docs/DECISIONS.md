@@ -80,6 +80,8 @@ Each entry: decision, alternatives, trade-off, who decided. "User" = Satyabrata 
 - The re-ranker and index are loaded before the clock starts.
 - Retrieval evaluation sends one question at a time and waits, outside the request clock, until our limiter has room; otherwise Table 3 latencies would measure the per-minute token budget rather than the retrieval setting. The waiting total is in `meta.json` (`pacing_wait_s`).
 - Real runs never start without `--yes`; without it the scripts print a token estimate built from the exact prompts (`experiments/budget.py`).
+- The limiter's state lives in one process, so a run started right after another does not know the previous run's
+  tokens: the first request of the real `medium_k4_rr` run got a TPM 429 (retried and answered). Not changed; noted.
 - Retrieval evaluation runs with degraded mode off (`Pipeline(allow_degraded=False)`) and aborts if any request runs degraded; otherwise the three settings are not compared (the first real attempt was invalid for this reason, EXPERIMENTS.md "R5 attempt 1").
 
 ## D17. Real runs only on the user's own Groq account (Assistant raised the brief's rule; User decided, 11 Nov)

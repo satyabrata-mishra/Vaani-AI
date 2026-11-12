@@ -7,10 +7,9 @@ behaviour under load, failures and rate limits that the free tier cannot safely 
 
 Built for the "The Relay" assignment (`The_Relay_Assignment_Brief.pdf`).
 
-**Status (11 Nov 2026):** pipeline, stand-in, load experiments, reporting and 111 tests are done. The real-Groq
-retrieval evaluation (Table 3) and the real steady-load baseline are scheduled for 12 Nov on a fresh daily quota
-window; hand grading, Vaani feedback, the conversation history and the final report are pending (see
-[Status and pending work](#status-and-pending-work)).
+**Status (12 Nov 2026):** pipeline, stand-in, all load experiments, the real retrieval evaluation and real
+steady baseline, reporting and 112 tests are done. Remaining before submission: the author's hand grades for Table 3,
+Vaani feedback and the author's sections of the final report (see [Status and pending work](#status-and-pending-work)).
 
 ---
 
@@ -200,6 +199,7 @@ prompts it would send (`experiments/budget.py`). Ordinary tests never use quota.
 | `python -m experiments.load_test <scenario> --seed N` | one scenario | no |
 | `python -m experiments.load_test steady_real --backend real [--yes]` | real steady baseline (12 questions) | ≈21K tokens |
 | `python -m experiments.retrieval_eval [--yes]` | 21 questions × 3 settings on Groq + grading sheets | ≈96–114K tokens |
+| `python -m experiments.pregrade [--dry-run]` | fill only the grades the rubric fixes mechanically (refusals, answered traps) | no |
 | `python -m experiments.apply_grades [--check]` | copy hand grades into `results.csv` | no |
 | `python -m experiments.slow_request --source stand-in\|real` | where one slow request's time went | no |
 | `python -m experiments.inspect_run [run_id]` | quick per-run breakdown | no |
@@ -214,6 +214,8 @@ Load scenarios (stand-in, deadline 30 s, 20 % of simulated people give up after 
 | `limit_halved` | constant 5/min for 8 min; provider halves RPM/TPM without notice at 4 min |
 | `daily_exhausted` | 6/min for 5 min with 20 requests left in the daily quota |
 | `errors_policy` / `errors_none` / `errors_naive` | 4/min for 6 min, 20 % of model calls fail; identical arrivals, only the retry behaviour differs |
+| `errors_busy_policy` / `errors_busy_none` / `errors_busy_naive` | same, at 12/min for 5 min |
+| `steady_real` (real Groq) | constant 3/min for 4 min, nobody gives up early |
 
 Questions: 21 self-written questions in `data/questions.json` (16 answerable incl. one cross-paper, 5 unanswerable
 traps), each with expected facts and locations.
@@ -224,6 +226,8 @@ traps), each with expected facts and locations.
 python -m experiments.runs                  # rebuild results.csv + results/traces.jsonl from the selected runs
 python -m app.evaluation.report             # Tables 1, 2a, 2b, 3 -> results/tables/
 python -m app.evaluation.report --check     # regenerate and compare; prints "reproducible"
+python scripts/paste_tables.py              # copy the tables into docs/FINAL_REPORT.md
+python scripts/package_submission.py        # final checks + key scan + ../The_Relay_submission.zip
 ```
 
 - Every run writes to its own `results/runs/<run_id>/` (meta, CSV, traces, per-second timeline, stand-in log) and is
@@ -248,13 +252,19 @@ Measured so far (from the generated tables; details in `results/tables/` and `do
   errors into 4 answers and 2 refusals at arrival, and made one person wait 3.8 s longer for the same non-answer.
 - **Stand-in calibration bug found and fixed:** it streamed ≈4x slower than calibrated after the first token (Windows
   timer rounding); all stand-in load runs were re-run.
-- **Table 3 (retrieval settings on real Groq): not measured yet.** The first real attempt was invalid (degraded mode
-  was active) and is excluded; see `docs/EXPERIMENTS.md`.
+- **Real steady baseline (12 requests):** all answered, first token p50 2,263 / p95 5,935 ms, ≈1,500 tokens per answer
+  — within 2–4 % of the stand-in's light-load numbers.
+- **Retrieval settings on real Groq (63 requests):** `small_k6` (BM25 only) answered the trap "What is the capital of
+  France?"; `medium_k4_rr` (chosen) answered all 16 answerable and refused all 5 unanswerable questions; `large_k2_rr`
+  refused 3 answerable ones. Correctness percentages in Table 3 come from hand grading. The first real attempt was
+  invalid (degraded mode was active) and is excluded; see `docs/EXPERIMENTS.md`.
+- **Slowest real request (17.6 s):** a first call with no first token within 6 s, a retry, 4.5 s waiting for token
+  budget, then 5.2 s for Groq to respond.
 
 ## Tests
 
 ```powershell
-python -m pytest        # 111 tests, ~50 s; never uses Groq quota (tests marked `real` are skipped)
+python -m pytest        # 112 tests, ~50 s; never uses Groq quota (tests marked `real` are skipped)
 ```
 
 Covered: request validation, PDF parsing and chunking, BM25 and retrieval hits, citation/number/paper verification,
@@ -276,7 +286,7 @@ the slow-request breakdown.
 | `app/simulator/` | stand-in service, behaviour models, profiles, calibration, in-process runner |
 | `app/evaluation/` | percentile definition, report tables |
 | `experiments/` | real probes, load tests, scenarios, retrieval evaluation, grading, budget, run bookkeeping |
-| `scripts/` | `fetch_papers.py`, `find_in_papers.py` (regex search over the parsed papers) |
+| `scripts/` | `fetch_papers.py`, `find_in_papers.py` (regex search over the parsed papers), `export_conversation.py`, `paste_tables.py` |
 | `data/` | `questions.json`, stand-in calibration, retrieval indexes (generated) |
 | `papers/` | the three PDFs + `manifest.json` |
 | `results/` | real probe logs, `groq_spend.jsonl` (every real call), runs, grading sheets, tables |
@@ -290,29 +300,27 @@ the slow-request breakdown.
 |---|---|
 | [`docs/ASSIGNMENT_ANALYSIS.md`](docs/ASSIGNMENT_ANALYSIS.md) | every requirement of the brief and its status |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | pipeline, request lifecycle, admission control, retries, statuses |
-| [`docs/DECISIONS.md`](docs/DECISIONS.md) | decisions D1–D16 with alternatives and trade-offs |
+| [`docs/DECISIONS.md`](docs/DECISIONS.md) | decisions D1–D17 with alternatives and trade-offs |
 | [`docs/EXPERIMENTS.md`](docs/EXPERIMENTS.md) | methodology, real measurement log, calibration, scenarios, findings, incidents |
-| `docs/FINAL_REPORT.md` | two-page report — pending |
+| [`docs/FINAL_REPORT.md`](docs/FINAL_REPORT.md) | the two-page report with the results tables |
+| `conversation/` | the unedited AI-assistant conversation (`transcript.jsonl`) and a readable copy |
 
 ## Status and pending work
 
-Done: paper library, ingestion and retrieval, Groq provider and real probes (R0–R4), stand-in and calibration,
-orchestration and fault tolerance, five stand-in load scenarios, report tables (1, 2a, 2b), slow-request breakdown
-(stand-in), daily-quota user experience, 111 tests.
+Done: paper library, ingestion and retrieval, Groq provider and real probes (R0–R4), the next-day quota check, stand-in
+and calibration, orchestration and fault tolerance, all stand-in load and retry scenarios, the real retrieval
+evaluation (R5) and real steady baseline (R6), report tables, slow-request breakdowns (stand-in and real), daily-quota
+user experience, 112 tests.
 
-Pending:
+Pending (author only):
 
 | Item | Who |
 |---|---|
-| Clean real retrieval evaluation (R5) and `steady_real` baseline (R6), 12 Nov on a fresh daily window | assistant runs, with approval |
 | Verify the 21 questions in `data/questions.json` (`user_verified`) | Satyabrata |
-| Hand-grade the answers of the clean R5 run in `results/grading/*.csv` (not `invalid_r5_attempt1/`), then `python -m experiments.apply_grades` | Satyabrata |
-| Real slow-request example (`--source real`) and Table 3 | after R5/R6 |
-| Optional: RPD idle-refill check (one tiny request after ≥ 1 h idle) | Satyabrata's approval |
+| Hand-grade the empty `grade` cells in `results/grading/2026*.csv` (not `invalid_r5_attempt1/`), then `python -m experiments.apply_grades`, `python -m app.evaluation.report`, `python scripts/paste_tables.py` | Satyabrata |
 | Visit https://www.vaani.dev/ and write the Vaani feedback | Satyabrata |
-| Export the AI-assistant conversation history | Satyabrata |
-| Final report (≤ 2 pages): prompts, mistake caught, decision overruled, own contribution | Satyabrata + assistant draft |
-| Decide: `uv` dependencies, Groq org id in raw probe logs, whether to commit the brief PDF | Satyabrata |
+| Write the `[YOU WRITE]` parts of `docs/FINAL_REPORT.md` and remove its draft box | Satyabrata |
+| `python scripts/package_submission.py` (refuses to build until all of the above is done) | Satyabrata |
 
 ## Known limitations
 
@@ -328,7 +336,7 @@ Pending:
 
 - **Project author:** Satyabrata Mishra.
 - **Built with AI assistance:** developed with an AI coding assistant (Cursor agent) under Satyabrata's direction;
-  the conversation history is a required deliverable (pending export). Decisions marked "(User)" in
+  the full conversation history is in `conversation/`. Decisions marked "(User)" in
   `docs/DECISIONS.md` were made by Satyabrata; those marked "(Assistant)" were proposed by the assistant.
 - **Assignment:** "The Relay" brief (`The_Relay_Assignment_Brief.pdf`).
 - **Papers:** the authors listed in [The paper library](#the-paper-library); PDFs from [arXiv](https://arxiv.org).

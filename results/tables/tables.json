@@ -46,9 +46,9 @@
    ],
    [
     "Time until recovery",
-    "RPM: 4547, 4500 ms after first 429; TPM: 3672 ms; per day: not measured",
-    "poll every 3 s (or after retry-after) until a 200",
-    "medium (n = 3 events)"
+    "RPM: 4547, 4500 ms after first 429; TPM: 3672 ms; per day: 999/1000 requests left 23.2 h after the last of 161 accepted requests (refilled within that gap; exact timing not measured)",
+    "poll every 3 s (or after retry-after) until a 200; per day: one tiny request the next day",
+    "medium (n = 3 events); per day: low (one check)"
    ]
   ]
  },
@@ -69,6 +69,34 @@
    "p99"
   ],
   "rows": [
+   [
+    "steady_real",
+    "real",
+    12,
+    "222193",
+    "3.0",
+    "2263",
+    "5935",
+    "5935",
+    12,
+    "2263",
+    "5935",
+    "5935"
+   ],
+   [
+    "retrieval_eval",
+    "real",
+    63,
+    "690055",
+    "5.5",
+    "2459",
+    "10168",
+    "17628",
+    63,
+    "2459",
+    "10168",
+    "17628"
+   ],
    [
     "steady",
     "stand-in",
@@ -243,6 +271,34 @@
   ],
   "rows": [
    [
+    "steady_real",
+    "real",
+    12,
+    "100.0",
+    "0.0",
+    "0.0 (0 gave up)",
+    "0.0",
+    "0.00",
+    1,
+    "0.0",
+    "1504",
+    "0.146"
+   ],
+   [
+    "retrieval_eval",
+    "real",
+    63,
+    "100.0",
+    "0.0",
+    "0.0 (0 gave up)",
+    "0.0",
+    "0.08",
+    1,
+    "0.0",
+    "1491",
+    "0.136"
+   ],
+   [
     "steady",
     "stand-in",
     31,
@@ -415,6 +471,52 @@
    "Total p50",
    "p95"
   ],
-  "rows": []
+  "rows": [
+   [
+    "small_k6",
+    "real",
+    21,
+    "0/21",
+    "not measured (not graded)",
+    "not measured (not graded)",
+    "not measured (not graded)",
+    "not measured (not graded)",
+    "1446",
+    "711",
+    "1263",
+    "711",
+    "1263"
+   ],
+   [
+    "medium_k4_rr",
+    "real",
+    21,
+    "0/21",
+    "not measured (not graded)",
+    "not measured (not graded)",
+    "not measured (not graded)",
+    "not measured (not graded)",
+    "1582",
+    "2714",
+    "13105",
+    "2714",
+    "13105"
+   ],
+   [
+    "large_k2_rr",
+    "real",
+    21,
+    "0/21",
+    "not measured (not graded)",
+    "not measured (not graded)",
+    "not measured (not graded)",
+    "not measured (not graded)",
+    "1444",
+    "2966",
+    "7701",
+    "2966",
+    "7701"
+   ]
+  ]
  }
 }

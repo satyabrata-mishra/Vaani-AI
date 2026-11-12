@@ -2,3 +2,6 @@
 
 | Retrieval setting | Source | Questions asked | Graded | Correct and cited % | Wrong % | Correct refusal % | Wrong refusal % | Tokens per answer | First token p50 | p95 | Total p50 | p95 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
+| small_k6 | real | 21 | 0/21 | not measured (not graded) | not measured (not graded) | not measured (not graded) | not measured (not graded) | 1446 | 711 | 1263 | 711 | 1263 |
+| medium_k4_rr | real | 21 | 0/21 | not measured (not graded) | not measured (not graded) | not measured (not graded) | not measured (not graded) | 1582 | 2714 | 13105 | 2714 | 13105 |
+| large_k2_rr | real | 21 | 0/21 | not measured (not graded) | not measured (not graded) | not measured (not graded) | not measured (not graded) | 1444 | 2966 | 7701 | 2966 | 7701 |

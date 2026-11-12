@@ -8,12 +8,14 @@
 | Tokens per day | 200000 (documentation); no header, never reached | Groq rate-limits page | low (not measured) |
 | Requests in flight at once | >= 8 (8/8 simultaneous succeeded) | 8 requests started within 62 ms (R4); more was not tried (RPM would reject first) | medium (lower bound) |
 | Behaviour at a limit | HTTP 429 in 79 / 63 ms (p50 per burst), message names the limit, `retry-after` 2 s; rejected requests not counted against the day | R2/R3 429 bodies and headers | high |
-| Time until recovery | RPM: 4547, 4500 ms after first 429; TPM: 3672 ms; per day: not measured | poll every 3 s (or after retry-after) until a 200 | medium (n = 3 events) |
+| Time until recovery | RPM: 4547, 4500 ms after first 429; TPM: 3672 ms; per day: 999/1000 requests left 23.2 h after the last of 161 accepted requests (refilled within that gap; exact timing not measured) | poll every 3 s (or after retry-after) until a 200; per day: one tiny request the next day | medium (n = 3 events); per day: low (one check) |
 
 **Table 2a - Latency per scenario. First-token percentiles: requests with status ok only (n shown); first token = arrival to the first token of the verified answer, queue wait included. Total-time percentiles: every request, whatever its status. Duration: first arrival to last completion. Stand-in rows are simulated and must not be read as Groq measurements.**
 
 | Scenario | Source | Requests | Duration (ms) | Offered req/min | First token p50 | p95 | p99 | n (first token) | Total p50 | p95 | p99 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
+| steady_real | real | 12 | 222193 | 3.0 | 2263 | 5935 | 5935 | 12 | 2263 | 5935 | 5935 |
+| retrieval_eval | real | 63 | 690055 | 5.5 | 2459 | 10168 | 17628 | 63 | 2459 | 10168 | 17628 |
 | steady | stand-in | 31 | 561800 | 3.1 | 2307 | 5745 | 5908 | 31 | 2307 | 5745 | 5908 |
 | burst | stand-in | 29 | 186594 | 7.2 | 2224 | 28535 | 28535 | 18 | 1558 | 21560 | 28535 |
 | overload | stand-in | 87 | 319633 | 17.4 | 16077 | 27414 | 28959 | 57 | 12711 | 25877 | 28959 |
@@ -30,6 +32,8 @@
 
 | Scenario | Source | Requests | Success % | Rate-limited % | Timeout / gave up % | Error % | Retries per request | Peak queue | Degraded % | Tokens per answer | USD per 1,000 answers |
 |---|---|---|---|---|---|---|---|---|---|---|---|
+| steady_real | real | 12 | 100.0 | 0.0 | 0.0 (0 gave up) | 0.0 | 0.00 | 1 | 0.0 | 1504 | 0.146 |
+| retrieval_eval | real | 63 | 100.0 | 0.0 | 0.0 (0 gave up) | 0.0 | 0.08 | 1 | 0.0 | 1491 | 0.136 |
 | steady | stand-in | 31 | 100.0 | 0.0 | 0.0 (0 gave up) | 0.0 | 0.00 | 1 | 0.0 | 1478 | 0.149 |
 | burst | stand-in | 29 | 62.1 | 37.9 | 0.0 (0 gave up) | 0.0 | 0.00 | 5 | 41.4 | 1262 | 0.129 |
 | overload | stand-in | 87 | 65.5 | 18.4 | 16.1 (14 gave up) | 0.0 | 0.00 | 5 | 94.3 | 865 | 0.088 |
@@ -46,3 +50,6 @@
 
 | Retrieval setting | Source | Questions asked | Graded | Correct and cited % | Wrong % | Correct refusal % | Wrong refusal % | Tokens per answer | First token p50 | p95 | Total p50 | p95 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
+| small_k6 | real | 21 | 0/21 | not measured (not graded) | not measured (not graded) | not measured (not graded) | not measured (not graded) | 1446 | 711 | 1263 | 711 | 1263 |
+| medium_k4_rr | real | 21 | 0/21 | not measured (not graded) | not measured (not graded) | not measured (not graded) | not measured (not graded) | 1582 | 2714 | 13105 | 2714 | 13105 |
+| large_k2_rr | real | 21 | 0/21 | not measured (not graded) | not measured (not graded) | not measured (not graded) | not measured (not graded) | 1444 | 2966 | 7701 | 2966 | 7701 |

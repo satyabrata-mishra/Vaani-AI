@@ -2,7 +2,6 @@
 
 Everything here is measured unless marked *assumed* or *(doc)*. Real-Groq and stand-in results are kept apart: every
 row in `results.csv` has `source` = `real` or `stand-in`, and the stand-in is never quoted as a Groq measurement.
-Open items are marked **[PENDING: …]**.
 
 ## Real-API budget plan (needs user approval before each run)
 
@@ -209,7 +208,12 @@ Stand-in result: request `63c7cc949372` (overload, U5, degraded), 28,959 ms tota
 model 4,016 ms (a simulated slow start: headers after 3,859 ms; 65 ms from first token to end), re-rank 1,507 ms,
 verification 2 ms, unexplained 2 ms. The person saw nothing until 28,959 ms because the answer is verified before
 release (D5). (Before the streaming fix the same request was `83c33ab04b00`, 29,143 ms, 80.6 % queue wait.)
-**[PENDING: real example after R5/R6.]**
+Real result: request `49eb48847d50` (R5, `medium_k4_rr`, H5), 17,628 ms total. Its first call got nothing from Groq
+within the 6 s first-token timeout (**failed attempt 6,010 ms, 34.1 %**); after 202 ms of backoff the retry **waited
+4,451 ms (25.2 %) in our token limiter** (the failed call's token reservation still counted, and Groq's header showed
+439 of 8,000 tokens left); then Groq took 5,152 ms to send response headers and 141 ms more to stream 124 tokens.
+Re-ranking 1,536 ms, verification 1 ms, other 18 ms. Nothing was queued ahead of it: the slowest real request was
+slow because of a provider stall plus our own budget, not because of other people.
 
 ## Retries: when does retrying help or hurt? (stand-in, `python -m experiments.load_test retries`)
 
@@ -294,11 +298,46 @@ Findings:
 Also observed: paraphrased questions (A5 "how does it know the order of words") miss "positional encoding" with BM25 alone; and the H-Net abstract says "nearly 4×" while the introduction says "3.6×" for the same DNA result.
 Reference lists are excluded from the index (Moshi's from p.42, H-Net's from p.25), so bibliography lines never reach a prompt.
 
-### Real retrieval evaluation (R5) and real baseline (R6) — [PENDING: clean runs on the own account's quota]
-- Command: `python -m experiments.retrieval_eval --yes` (3 settings × 21 questions, degraded mode off), then
-  `python -m experiments.load_test steady_real --backend real --yes`.
+### Real retrieval evaluation (R5) and real baseline (R6) — 12 Nov 2026, own account
+- Commands: `python -m experiments.retrieval_eval --yes` (3 settings × 21 questions, degraded mode off; 12:54–13:06
+  UTC), then `python -m experiments.load_test steady_real --backend real --yes` (13:06–13:10 UTC).
 - The grading sheets of the invalid attempt 1 are in `results/grading/invalid_r5_attempt1/` and must not be graded.
-- After R5: the user grades the new `results/grading/*.csv` (rubric in `data/questions.json`), `python -m experiments.apply_grades`,
-  `python -m app.evaluation.report`, `python -m experiments.slow_request --source real`.
-- [PENDING: R5 results — Table 3, chosen setting and why]
-- [PENDING: R6 results — real row in Tables 2a/2b, compared with the stand-in `steady` row]
+- Grading: `python -m experiments.pregrade` fills only the grades the rubric fixes mechanically (a refusal of an
+  answerable question = `refused_wrongly`; of an unanswerable one = `refused_correctly`; an answer to an unanswerable
+  one = `wrong`) and marks them `[rule: …]` in `grader_note`. Answers to answerable questions are graded by hand
+  (D3), then `python -m experiments.apply_grades` and `python -m app.evaluation.report`.
+
+**R5 — what each setting did** (all 63 requests status ok, none degraded, no daily limit):
+
+| Setting | Answerable answered (of 16) | Answerable refused | Unanswerable refused (of 5) | Tokens per answer | First token p50 / p95 (ms) |
+|---|---|---|---|---|---|
+| `small_k6` (BM25 only) | 15 | A5 | 4 — **answered U1** | 1,446 | 711 / 1,263 |
+| `medium_k4_rr` | 16 | — | 5 | 1,582 | 2,714 / 13,105 |
+| `large_k2_rr` | 13 | A2 (failed verification), A5, M3 | 5 | 1,444 | 2,966 / 7,701 |
+
+- **The naive-retriever trap fired for real.** `small_k6` answered U1 "What is the capital of France?" from Moshi's
+  Appendix F.1 demo dialogue and cited it (§F.1, p.63). Both re-ranked settings refused U1 before calling the model
+  (re-rank score below −8).
+- **Paraphrase needs re-ranking.** A5 ("how does it know the order of words") was refused by BM25-only `small_k6`
+  and by 2-piece `large_k2_rr`; only `medium_k4_rr` found §3.5 Positional Encoding.
+- **Two pieces are too few.** `large_k2_rr` refused three answerable questions; A5 and M3 were also offline misses.
+- **Cost of re-ranking is time, not tokens:** tokens per answer differ by under 10 %; first-token p50 is ≈2 s higher
+  with re-ranking, of which ≈1.3–1.5 s is CPU re-ranking.
+- **Chosen setting: `medium_k4_rr`** (already the default in `app/config.py`): the only setting that answered all 16
+  answerable questions and refused all 5 unanswerable ones. Correctness of the answers themselves is Table 3, by hand.
+- **Real 429s.** 2 of 66 real calls got a per-minute token 429; both were retried after Groq's `retry-after` and
+  answered. A1 was the first request of the `medium_k4_rr` run, which started seconds after the `small_k6` run in a new
+  process whose limiter did not know the previous run's tokens; for M1, Groq counted 5,806 tokens used, more than our
+  estimate. 3 calls timed out before their first token (6 s) and were answered on retry.
+
+**R6 — real steady baseline vs stand-in** (`steady_real`: 3/min at constant spacing for 4 min, nobody impatient;
+`steady`: Poisson ≈4/min planned for 10 min; both draw from the same 21 questions):
+
+| | Requests | Answered | First token p50 / p95 (ms) | Tokens per answer | 429s |
+|---|---|---|---|---|---|
+| Real Groq (`steady_real`, 12 requests, 3/min) | 12 | 12 | 2,263 / 5,935 | 1,504 | 0 |
+| Stand-in (`steady`, 31 requests, 3.1/min) | 31 | 31 | 2,307 / 5,745 | 1,478 | 0 |
+
+At light load the stand-in's first-token p50, p95 and tokens per answer are within 2–4 % of the real service. With
+12 real requests the nearest-rank p95 is the slowest request, so this is a rough match only; it says nothing about
+behaviour under load, which was not tested on Groq.

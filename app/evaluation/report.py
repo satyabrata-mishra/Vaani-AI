@@ -109,6 +109,25 @@ def _probe_headers() -> dict:
     return {}
 
 
+def _daily_recovery() -> str:
+    """Daily request budget after an idle gap: the latest smoke check vs the requests Groq accepted before it."""
+    smokes = sorted(PROBE_DIR.glob("smoke_*.jsonl"))
+    ledger = RESULTS_DIR / "groq_spend.jsonl"
+    if len(smokes) < 2 or not ledger.exists():
+        return NM
+    check = json.loads(smokes[-1].read_text(encoding="utf-8").splitlines()[0])
+    t_check = datetime.fromisoformat(check["utc"])
+    before = [json.loads(l) for l in ledger.read_text(encoding="utf-8").splitlines()]
+    before = [r for r in before if r["status_code"] == 200
+              and (t_check - datetime.fromisoformat(r["utc"])).total_seconds() > 60]  # not the check itself
+    if not before:
+        return NM
+    gap_h = (t_check - max(datetime.fromisoformat(r["utc"]) for r in before)).total_seconds() / 3600
+    left = check["raw_headers"].get("x-ratelimit-remaining-requests", "?")
+    return (f"per day: {left}/1000 requests left {gap_h:.1f} h after the last of {len(before)} accepted requests "
+            "(refilled within that gap; exact timing not measured)")
+
+
 def table1() -> tuple[list[str], list[list[str]]]:
     s = json.loads((PROBE_DIR / "summary.json").read_text(encoding="utf-8"))
     h = _probe_headers()
@@ -140,8 +159,9 @@ def table1() -> tuple[list[str], list[list[str]]]:
                                  "`retry-after` 2 s; rejected requests not counted against the day",
          "R2/R3 429 bodies and headers", "high"],
         ["Time until recovery", f"RPM: {', '.join(map(str, rpm_rec))} ms after first 429; TPM: "
-                                f"{round(t0['recovery_s_after_first_429'] * 1000)} ms; per day: {NM}",
-         "poll every 3 s (or after retry-after) until a 200", "medium (n = 3 events)"],
+                                f"{round(t0['recovery_s_after_first_429'] * 1000)} ms; {_daily_recovery()}",
+         "poll every 3 s (or after retry-after) until a 200; per day: one tiny request the next day",
+         "medium (n = 3 events); per day: low (one check)"],
     ]
     return ["Limit", "Value", "How measured", "Confidence"], rows
 

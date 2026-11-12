@@ -69,6 +69,8 @@ async def run_setting(setting: str, questions: list[dict], backend: str, deadlin
                                    retrieval_setting=setting, deadline_s=deadline_s, run_id=run_id)
             if tr.degraded:
                 raise RuntimeError(f"{q['id']} ran degraded; the settings comparison would be invalid")
+            if tr.outcome.startswith("daily_budget_exhausted"):
+                raise RuntimeError(f"{q['id']}: daily budget exhausted ({tr.outcome}); stop and resume another day")
             print(f"  [{setting}] {q['id']:<3} {tr.status:<12} {tr.outcome:<24} "
                   f"in={tr.tokens_in:>5} out={tr.tokens_out:>4} total={tr.total_ms:>7.0f}ms", flush=True)
             sheet.append({

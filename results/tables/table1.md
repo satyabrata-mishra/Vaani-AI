@@ -8,4 +8,4 @@
 | Tokens per day | 200000 (documentation); no header, never reached | Groq rate-limits page | low (not measured) |
 | Requests in flight at once | >= 8 (8/8 simultaneous succeeded) | 8 requests started within 62 ms (R4); more was not tried (RPM would reject first) | medium (lower bound) |
 | Behaviour at a limit | HTTP 429 in 79 / 63 ms (p50 per burst), message names the limit, `retry-after` 2 s; rejected requests not counted against the day | R2/R3 429 bodies and headers | high |
-| Time until recovery | RPM: 4547, 4500 ms after first 429; TPM: 3672 ms; per day: not measured | poll every 3 s (or after retry-after) until a 200 | medium (n = 3 events) |
+| Time until recovery | RPM: 4547, 4500 ms after first 429; TPM: 3672 ms; per day: 999/1000 requests left 23.2 h after the last of 161 accepted requests (refilled within that gap; exact timing not measured) | poll every 3 s (or after retry-after) until a 200; per day: one tiny request the next day | medium (n = 3 events); per day: low (one check) |

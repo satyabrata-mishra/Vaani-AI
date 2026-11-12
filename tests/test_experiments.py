@@ -39,6 +39,15 @@ def test_retry_variants_differ_only_in_retry_mode():
     assert RETRY_SCENARIOS["errors_busy_policy"].rate_per_min > RETRY_SCENARIOS["errors_policy"].rate_per_min
 
 
+def test_pregrade_fills_only_mechanical_grades():
+    from experiments.pregrade import rule
+    assert rule("answerable", "ok", "refused_not_in_papers") == "refused_wrongly"
+    assert rule("unanswerable", "ok", "refused_no_evidence") == "refused_correctly"
+    assert rule("unanswerable", "ok", "answered") == "wrong"
+    assert rule("answerable", "ok", "answered_partial") == ""      # needs a human
+    assert rule("unanswerable", "timeout", "deadline") == ""       # not an answer at all
+
+
 def test_plan_is_reproducible_from_seed():
     sc = SCENARIOS["steady"]
     a, b, c = plan(sc, 7), plan(sc, 7), plan(sc, 8)

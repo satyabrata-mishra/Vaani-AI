@@ -1,6 +1,6 @@
 # Architecture — The Relay
 
-Status: **implemented and tested** (111 tests, none use Groq quota). Numbers marked *(doc)* come from Groq's
+Status: **implemented and tested** (112 tests, none use Groq quota). Numbers marked *(doc)* come from Groq's
 documentation; numbers marked *(est)* are design-time estimates. Measured values are in `docs/EXPERIMENTS.md`.
 
 ## 1. The constraint that shapes everything
